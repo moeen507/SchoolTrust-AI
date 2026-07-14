@@ -308,7 +308,7 @@ def build_srs():
         ("Case study", "Umeed Education System, Lahore"),
         ("Version / date", "Version 1.0  |  14 July 2026"),
         ("Live demo link", "[ENTER AFTER DEPLOYMENT]"),
-        ("GitHub repository", "[ENTER IF AVAILABLE]"),
+        ("GitHub repository", "https://github.com/moeen507/SchoolTrust-AI"),
     ])
 
     doc.add_heading("Document Control", level=1)
