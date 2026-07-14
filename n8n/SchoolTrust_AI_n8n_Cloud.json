@@ -1,0 +1,1466 @@
+{
+  "name": "SchoolTrust AI - Verified Parent Support (n8n Cloud)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "schooltrust-ask",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "40d4ad20-f375-5697-85a5-dbb1c30d044b",
+      "name": "Parent Question Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1900,
+        -520
+      ],
+      "webhookId": "84042d13-3754-5e8c-a397-de88395048a4"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\nconst body = $json.body ?? $json;\nconst question = String(body.question ?? '').trim();\nif (question.length < 3 || question.length > 1000) {\n  throw new Error('Question must contain between 3 and 1000 characters.');\n}\nconst q = question.toLowerCase();\nconst criticalTerms = ['fee', 'fund', 'charges', 'payment', 'timing', 'time', 'date', 'admission', 'policy', 'transport', 'result'];\nconst critical_topic = criticalTerms.some(term => q.includes(term));\nlet topic = 'general';\nif (/fee|fund|charge|payment/.test(q)) topic = 'fees';\nelse if (/admission|document|class|grade/.test(q)) topic = 'admissions';\nelse if (/time|timing|schedule|date|vacation|holiday/.test(q)) topic = 'timings';\nelse if (/contact|phone|email|address|campus/.test(q)) topic = 'contact';\nelse if (/transport|van|bus/.test(q)) topic = 'transport';\nconst detected_language = /[\\u0600-\\u06FF]/.test(question) ? 'ur' : 'en';\nreturn {\n  session_id: String(body.session_id || ('web-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8))),\n  user_contact: body.user_contact ? String(body.user_contact).slice(0, 150) : null,\n  question,\n  detected_language,\n  critical_topic,\n  topic,\n  received_at: new Date().toISOString()\n};\n"
+      },
+      "id": "5eddf498-f404-5759-b87c-7cf50b44907e",
+      "name": "Validate Parent Question",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1660,
+        -520
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/embeddings",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: 'text-embedding-3-small', input: $('Validate Parent Question').item.json.question }) }}",
+        "options": {
+          "timeout": 60000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi"
+      },
+      "id": "1a68931e-b3df-54c0-ac6a-b2179655a8ec",
+      "name": "Create Question Embedding",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1420,
+        -520
+      ],
+      "credentials": {
+        "openAiApi": {
+          "name": "SchoolTrust OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://uklalbmvfmdkgqqbsnrk.supabase.co' + '/rest/v1/rpc/match_school_knowledge' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ query_embedding: $json.data[0].embedding, match_threshold: $('Validate Parent Question').item.json.critical_topic ? 0.72 : 0.65, match_count: 6 }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "c0e7e13d-5c98-5951-9645-2ee8364aa972",
+      "name": "Retrieve Approved Knowledge",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1180,
+        -520
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "name": "SchoolTrust Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\nconst request = $('Validate Parent Question').item.json;\nconst matches = Array.isArray($json) ? $json : ($json.body ?? []);\nconst active = matches.filter(m => m && m.id && m.content);\nconst sources = active.map((m, i) => ({\n  source_number: i + 1,\n  id: m.id,\n  title: m.document_title,\n  category: m.category,\n  version: m.version_no,\n  effective_from: m.effective_from,\n  expires_at: m.expires_at,\n  similarity: m.similarity,\n  content: m.content\n}));\nconst context = sources.length\n  ? sources.map(s => '[SOURCE ' + s.source_number + ' | ID ' + s.id + ' | ' + s.title + ' | version ' + s.version + ']\\n' + s.content).join('\\n\\n')\n  : 'NO APPROVED SOURCE WAS RETRIEVED.';\nconst system = [\n  'You are SchoolTrust AI, a verified parent-support assistant.',\n  'Use only the APPROVED SOURCES supplied below. Never use general knowledge to fill missing school facts.',\n  'Critical topics include fees, dates, timings, admissions, payments, results, transport and policies.',\n  '',\n  'Return one JSON object only with:',\n  'answer_mode: \"verified\", \"clarification\", or \"escalated\"',\n  'answer: concise parent-facing answer in the question language',\n  'confidence: number from 0 to 1',\n  'source_ids: array of source UUID strings actually used',\n  'reason: short internal reason',\n  '',\n  'Rules:',\n  '1. If the sources fully support one current answer, use verified.',\n  '2. If two categories or cases have different valid answers, ask a precise clarification or state both categories.',\n  '3. If sources conflict, are incomplete, appear stale, or do not answer the question, use escalated.',\n  '4. Do not invent a fee, date, timing, policy, address or availability.',\n  '5. For Urdu questions, answer in clear Urdu. For English questions, answer in English.',\n  '6. Do not mention embeddings, confidence thresholds or internal workflow details.'\n].join('\\n');\nconst user = 'QUESTION: ' + request.question + '\\nTOPIC: ' + request.topic + '\\nCRITICAL: ' + request.critical_topic + '\\n\\nAPPROVED SOURCES:\\n' + context;\nreturn { ...request, retrieved_sources: sources, source_count: sources.length, system_prompt: system, user_prompt: user };\n"
+      },
+      "id": "1afdbc26-4703-5b4a-b5f4-aff382cc3e91",
+      "name": "Build Verified RAG Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -940,
+        -520
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: 'gpt-4.1-mini', temperature: 0.1, response_format: { type: 'json_object' }, messages: [{ role: 'system', content: $json.system_prompt }, { role: 'user', content: $json.user_prompt }] }) }}",
+        "options": {
+          "timeout": 60000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi"
+      },
+      "id": "4279e950-1c92-514b-8892-b61cc9970da0",
+      "name": "Generate Controlled Answer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -700,
+        -520
+      ],
+      "credentials": {
+        "openAiApi": {
+          "name": "SchoolTrust OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\nconst prepared = $('Build Verified RAG Prompt').item.json;\nlet parsed = {};\ntry {\n  const raw = $json.choices?.[0]?.message?.content ?? '{}';\n  parsed = JSON.parse(raw);\n} catch (error) {\n  parsed = { answer_mode: 'escalated', answer: '', confidence: 0, source_ids: [], reason: 'Model output was not valid JSON.' };\n}\nconst allowedIds = new Set(prepared.retrieved_sources.map(s => String(s.id)));\nconst source_ids = Array.isArray(parsed.source_ids)\n  ? parsed.source_ids.map(String).filter(id => allowedIds.has(id))\n  : [];\nconst confidence = Math.max(0, Math.min(1, Number(parsed.confidence || 0)));\nconst threshold = prepared.critical_topic ? 0.82 : 0.72;\nlet answer_status = parsed.answer_mode;\nif (!['verified', 'clarification', 'escalated'].includes(answer_status)) answer_status = 'escalated';\nif (answer_status === 'verified' && (prepared.source_count === 0 || source_ids.length === 0 || confidence < threshold)) {\n  answer_status = 'escalated';\n}\nlet answer = String(parsed.answer || '').trim();\nif (answer_status === 'escalated' || !answer) {\n  answer = prepared.detected_language === 'ur'\n    ? 'اس سوال کی تصدیق شدہ معلومات اس وقت دستیاب نہیں ہیں۔ آپ کا سوال سکول انتظامیہ کے جائزے کے لیے بھیج دیا گیا ہے۔'\n    : 'Verified information for this question is not currently available. Your question has been sent to the school administration for review.';\n}\nreturn {\n  session_id: prepared.session_id,\n  user_contact: prepared.user_contact,\n  question: prepared.question,\n  detected_language: prepared.detected_language,\n  topic: prepared.topic,\n  critical_topic: prepared.critical_topic,\n  answer,\n  answer_status,\n  confidence,\n  source_ids,\n  reason: String(parsed.reason || 'Guardrail decision'),\n  normalized_topic: prepared.topic,\n  priority: prepared.critical_topic ? 'high' : 'medium',\n  answered_at: new Date().toISOString()\n};\n"
+      },
+      "id": "47c0fa3a-8194-5629-95e6-d8cd44d94e27",
+      "name": "Apply Answer Guardrails",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -460,
+        -520
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "572f5d94-7c9e-504e-bc38-ebaf23179392",
+              "leftValue": "={{ $json.answer_status }}",
+              "rightValue": "verified",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4ed7010d-6166-527a-b5d9-749d7b0602e2",
+      "name": "Is Verified Answer",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -220,
+        -520
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://uklalbmvfmdkgqqbsnrk.supabase.co' + '/rest/v1/conversation_logs' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ session_id: $json.session_id, user_contact: $json.user_contact, question: $json.question, detected_language: $json.detected_language, topic: $json.topic, critical_topic: $json.critical_topic, answer: $json.answer, answer_status: 'verified', confidence: $json.confidence, source_ids: $json.source_ids }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "2e29d628-9874-5f16-84c6-090b1d69dade",
+      "name": "Log Verified Conversation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        20,
+        -660
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "name": "SchoolTrust Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, status: 'verified', answer: $('Apply Answer Guardrails').item.json.answer, confidence: $('Apply Answer Guardrails').item.json.confidence, source_ids: $('Apply Answer Guardrails').item.json.source_ids, session_id: $('Apply Answer Guardrails').item.json.session_id } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "bc710e75-d81b-54d4-a718-15febf62b0f7",
+      "name": "Return Verified Answer",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        260,
+        -660
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "94750a2c-7155-5e14-a5af-54144f4130ed",
+              "leftValue": "={{ $json.answer_status }}",
+              "rightValue": "clarification",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "aabfb310-7e4d-539c-b243-bf37333355f6",
+      "name": "Needs Clarification",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        20,
+        -420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://uklalbmvfmdkgqqbsnrk.supabase.co' + '/rest/v1/conversation_logs' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ session_id: $json.session_id, user_contact: $json.user_contact, question: $json.question, detected_language: $json.detected_language, topic: $json.topic, critical_topic: $json.critical_topic, answer: $json.answer, answer_status: 'clarification', confidence: $json.confidence, source_ids: $json.source_ids }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "5c721d67-539f-5e9f-a9bb-0b3ca87e98bf",
+      "name": "Log Clarification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        -420
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "name": "SchoolTrust Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, status: 'clarification', answer: $('Apply Answer Guardrails').item.json.answer, session_id: $('Apply Answer Guardrails').item.json.session_id } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "a63e4a52-d17a-5e5f-b2ac-4298b1dd055f",
+      "name": "Return Clarification",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        500,
+        -420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://uklalbmvfmdkgqqbsnrk.supabase.co' + '/rest/v1/rpc/record_knowledge_gap' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ p_session_id: $json.session_id, p_user_contact: $json.user_contact, p_question: $json.question, p_topic: $json.normalized_topic, p_reason: $json.reason, p_priority: $json.priority }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "bc7ec60b-14ed-5207-897e-58fb7e1aafca",
+      "name": "Record Knowledge Gap",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        -220
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "name": "SchoolTrust Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://uklalbmvfmdkgqqbsnrk.supabase.co' + '/rest/v1/conversation_logs' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ session_id: $('Apply Answer Guardrails').item.json.session_id, user_contact: $('Apply Answer Guardrails').item.json.user_contact, question: $('Apply Answer Guardrails').item.json.question, detected_language: $('Apply Answer Guardrails').item.json.detected_language, topic: $('Apply Answer Guardrails').item.json.topic, critical_topic: $('Apply Answer Guardrails').item.json.critical_topic, answer: $('Apply Answer Guardrails').item.json.answer, answer_status: 'escalated', confidence: $('Apply Answer Guardrails').item.json.confidence, source_ids: $('Apply Answer Guardrails').item.json.source_ids }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "1798759c-04b6-568d-a02d-3da907301e59",
+      "name": "Log Escalated Conversation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        -220
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "name": "SchoolTrust Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, status: 'escalated', answer: $('Apply Answer Guardrails').item.json.answer, gap_created: true, session_id: $('Apply Answer Guardrails').item.json.session_id } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "1b7991dc-8dcb-5b7e-a261-6533dfefc3b8",
+      "name": "Return Safe Escalation",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        740,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "schooltrust-admin-approve",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "authentication": "headerAuth"
+      },
+      "id": "3b13941e-7617-596b-b7dd-cea065e5a666",
+      "name": "Administrator Approval Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1900,
+        220
+      ],
+      "webhookId": "2804bd97-c32d-55d1-ab5d-c3c43842fd42",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "SchoolTrust Admin Header"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\nconst b = $json.body || {};\nfor (const field of ['document_title', 'category', 'content', 'actor']) {\n  if (!String(b[field] || '').trim()) throw new Error('Missing required field: ' + field);\n}\nif (String(b.content).trim().length < 20) throw new Error('Approved content must contain at least 20 characters.');\nreturn {\n  gap_id: b.gap_id || null,\n  document_title: String(b.document_title).trim(),\n  category: String(b.category).trim().toLowerCase(),\n  content: String(b.content).trim(),\n  source_url: b.source_url || null,\n  version_no: Number(b.version_no || 1),\n  effective_from: b.effective_from || null,\n  expires_at: b.expires_at || null,\n  actor: String(b.actor).trim()\n};\n"
+      },
+      "id": "07e466a9-ae70-5f66-9e8d-4d421629e1b2",
+      "name": "Validate Administrator Approval",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1660,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/embeddings",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: 'text-embedding-3-small', input: $('Validate Administrator Approval').item.json.content }) }}",
+        "options": {
+          "timeout": 60000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi"
+      },
+      "id": "fdf8f931-ba51-5273-b857-59cb6c1aa106",
+      "name": "Embed Approved Knowledge",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1420,
+        220
+      ],
+      "credentials": {
+        "openAiApi": {
+          "name": "SchoolTrust OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://uklalbmvfmdkgqqbsnrk.supabase.co' + '/rest/v1/knowledge_chunks' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ document_title: $('Validate Administrator Approval').item.json.document_title, category: $('Validate Administrator Approval').item.json.category, content: $('Validate Administrator Approval').item.json.content, source_url: $('Validate Administrator Approval').item.json.source_url, version_no: $('Validate Administrator Approval').item.json.version_no, status: 'approved', effective_from: $('Validate Administrator Approval').item.json.effective_from, expires_at: $('Validate Administrator Approval').item.json.expires_at, embedding: $json.data[0].embedding, approved_by: $('Validate Administrator Approval').item.json.actor, approved_at: new Date().toISOString() }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "118cc9d8-1fb4-5f5e-bddf-35285830e610",
+      "name": "Publish Approved Knowledge",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1180,
+        220
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "name": "SchoolTrust Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\nconst approved = $('Validate Administrator Approval').item.json;\nconst inserted = Array.isArray($json) ? $json[0] : $json;\nreturn { ...approved, knowledge_id: inserted?.id || null };\n"
+      },
+      "id": "abc2de71-806d-5555-93f2-1845e985b078",
+      "name": "Prepare Approval Audit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -940,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://uklalbmvfmdkgqqbsnrk.supabase.co' + '/rest/v1/knowledge_gaps?id=eq.' + ($json.gap_id || '00000000-0000-0000-0000-000000000000') }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ status: 'resolved', resolution_notes: 'Approved knowledge published by ' + $json.actor, resolved_knowledge_id: $json.knowledge_id, resolved_at: new Date().toISOString() }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "1a90168e-2064-59af-abb5-15ecf4ad9f68",
+      "name": "Resolve Related Gap",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -700,
+        220
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "name": "SchoolTrust Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://uklalbmvfmdkgqqbsnrk.supabase.co' + '/rest/v1/admin_actions' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ actor: $('Prepare Approval Audit').item.json.actor, action_type: 'publish_knowledge', entity_type: 'knowledge_chunk', entity_id: $('Prepare Approval Audit').item.json.knowledge_id, details: { gap_id: $('Prepare Approval Audit').item.json.gap_id, category: $('Prepare Approval Audit').item.json.category, title: $('Prepare Approval Audit').item.json.document_title } }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "033e86a8-b0b3-52b7-89da-7303b6dd08fa",
+      "name": "Log Administrator Action",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -460,
+        220
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "name": "SchoolTrust Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, status: 'approved', knowledge_id: $('Prepare Approval Audit').item.json.knowledge_id, message: 'Knowledge published. Run the quality test branch before final deployment.' } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "3226ea3a-6c33-5fb4-bf20-f2a456efdc42",
+      "name": "Return Approval Confirmation",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -220,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "schooltrust-admin-data",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "authentication": "headerAuth"
+      },
+      "id": "eb59c9ce-70db-5355-83d6-b0ab1b838111",
+      "name": "Administrator Dashboard Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1900,
+        620
+      ],
+      "webhookId": "54bfa7db-5eb6-512f-83de-425df49cbb1c",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "SchoolTrust Admin Header"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\nreturn { authorized: true };\n"
+      },
+      "id": "c0063241-6692-583c-ab31-a9017d18bb06",
+      "name": "Verify Dashboard Access",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1660,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://uklalbmvfmdkgqqbsnrk.supabase.co' + '/rest/v1/rpc/schooltrust_admin_dashboard' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "{}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "46666892-cf0e-5901-ab8e-573f3916c60c",
+      "name": "Load Dashboard Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1420,
+        620
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "name": "SchoolTrust Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, data: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "c5bec0ca-1902-5319-b371-b7fa30b295ba",
+      "name": "Return Dashboard Data",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -1180,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "id": "0a69fe3d-6848-59d4-95ef-92a9c9347322",
+      "name": "Daily Quality Test",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1900,
+        1020
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "99f70831-dc6b-54dc-a1e6-ad6c16fc3a94",
+      "name": "Manual Quality Test",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1900,
+        1160
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://uklalbmvfmdkgqqbsnrk.supabase.co' + '/rest/v1/regression_tests?is_active=eq.true&select=*' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "5ade1ee6-e7f5-5c7a-b77d-cd2cefe53175",
+      "name": "Fetch Active Regression Tests",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1660,
+        1080
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "name": "SchoolTrust Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst incoming = $input.all();\nif (incoming.length > 1) return incoming;\nconst value = incoming[0]?.json;\nconst rows = Array.isArray(value) ? value : (Array.isArray(value?.data) ? value.data : []);\nreturn rows.map(row => ({ json: row }));\n"
+      },
+      "id": "f8f5f110-baee-57db-ac30-b9a0d2d330af",
+      "name": "Split Regression Tests",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1420,
+        1080
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/embeddings",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: 'text-embedding-3-small', input: $('Split Regression Tests').item.json.question }) }}",
+        "options": {
+          "timeout": 60000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi"
+      },
+      "id": "c1416f06-b261-5e7e-ad98-acdf6d3d2c99",
+      "name": "Embed Regression Question",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1180,
+        1080
+      ],
+      "credentials": {
+        "openAiApi": {
+          "name": "SchoolTrust OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://uklalbmvfmdkgqqbsnrk.supabase.co' + '/rest/v1/rpc/match_school_knowledge' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ query_embedding: $json.data[0].embedding, match_threshold: 0.65, match_count: 6 }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "e17839cb-ec8d-5e92-bd77-a9493ffc062f",
+      "name": "Retrieve Test Knowledge",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -940,
+        1080
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "name": "SchoolTrust Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\nconst test = $('Split Regression Tests').item.json;\nconst matches = Array.isArray($json) ? $json : [];\nconst context = matches.length ? matches.map((m, i) => '[' + (i + 1) + '] ' + m.content).join('\\n') : 'NO APPROVED KNOWLEDGE';\nreturn {\n  ...test,\n  context,\n  evaluation_prompt: 'Answer the question using only the approved knowledge. If the answer is missing, say that verified information is unavailable.\\nQUESTION: ' + test.question + '\\nAPPROVED KNOWLEDGE:\\n' + context\n};\n"
+      },
+      "id": "26d2a8e7-7d9f-5d17-a80b-8370d1307fd5",
+      "name": "Build Regression Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -700,
+        1080
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: 'gpt-4.1-mini', temperature: 0, messages: [{ role: 'system', content: 'You are evaluating a school support knowledge base. Use only supplied approved knowledge.' }, { role: 'user', content: $json.evaluation_prompt }] }) }}",
+        "options": {
+          "timeout": 60000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi"
+      },
+      "id": "68877b43-1ac3-5736-a5ca-105f66b3b705",
+      "name": "Generate Regression Answer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -460,
+        1080
+      ],
+      "credentials": {
+        "openAiApi": {
+          "name": "SchoolTrust OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\nconst test = $('Build Regression Prompt').item.json;\nconst answer = String($json.choices?.[0]?.message?.content || '');\nconst normalize = s => String(s).toLowerCase().replace(/[,.-]/g, '').replace(/\\s+/g, ' ').trim();\nconst normalizedAnswer = normalize(answer);\nconst expected = Array.isArray(test.expected_facts) ? test.expected_facts : [];\nconst missing = expected.filter(fact => !normalizedAnswer.includes(normalize(fact)));\nconst score = expected.length ? (expected.length - missing.length) / expected.length : 0;\nreturn {\n  regression_test_id: test.id,\n  generated_answer: answer,\n  passed: missing.length === 0,\n  score,\n  missing_facts: missing,\n  notes: missing.length ? ('Missing ' + missing.length + ' expected fact(s).') : 'All expected facts were present.'\n};\n"
+      },
+      "id": "d8816714-a2d6-5782-9b28-65ed595d1691",
+      "name": "Score Regression Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -220,
+        1080
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://uklalbmvfmdkgqqbsnrk.supabase.co' + '/rest/v1/evaluation_results' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "b0901982-98bf-5097-87ca-120baee5e4b0",
+      "name": "Store Evaluation Result",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        20,
+        1080
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "name": "SchoolTrust Supabase"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Parent Question Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Parent Question",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Parent Question": {
+      "main": [
+        [
+          {
+            "node": "Create Question Embedding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Question Embedding": {
+      "main": [
+        [
+          {
+            "node": "Retrieve Approved Knowledge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retrieve Approved Knowledge": {
+      "main": [
+        [
+          {
+            "node": "Build Verified RAG Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Verified RAG Prompt": {
+      "main": [
+        [
+          {
+            "node": "Generate Controlled Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Controlled Answer": {
+      "main": [
+        [
+          {
+            "node": "Apply Answer Guardrails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Answer Guardrails": {
+      "main": [
+        [
+          {
+            "node": "Is Verified Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Verified Conversation": {
+      "main": [
+        [
+          {
+            "node": "Return Verified Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Clarification": {
+      "main": [
+        [
+          {
+            "node": "Return Clarification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Knowledge Gap": {
+      "main": [
+        [
+          {
+            "node": "Log Escalated Conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Escalated Conversation": {
+      "main": [
+        [
+          {
+            "node": "Return Safe Escalation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Administrator Approval Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Administrator Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Administrator Approval": {
+      "main": [
+        [
+          {
+            "node": "Embed Approved Knowledge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embed Approved Knowledge": {
+      "main": [
+        [
+          {
+            "node": "Publish Approved Knowledge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish Approved Knowledge": {
+      "main": [
+        [
+          {
+            "node": "Prepare Approval Audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Approval Audit": {
+      "main": [
+        [
+          {
+            "node": "Resolve Related Gap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Related Gap": {
+      "main": [
+        [
+          {
+            "node": "Log Administrator Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Administrator Action": {
+      "main": [
+        [
+          {
+            "node": "Return Approval Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Administrator Dashboard Webhook": {
+      "main": [
+        [
+          {
+            "node": "Verify Dashboard Access",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Dashboard Access": {
+      "main": [
+        [
+          {
+            "node": "Load Dashboard Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Dashboard Data": {
+      "main": [
+        [
+          {
+            "node": "Return Dashboard Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Quality Test": {
+      "main": [
+        [
+          {
+            "node": "Fetch Active Regression Tests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Quality Test": {
+      "main": [
+        [
+          {
+            "node": "Fetch Active Regression Tests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Active Regression Tests": {
+      "main": [
+        [
+          {
+            "node": "Split Regression Tests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Regression Tests": {
+      "main": [
+        [
+          {
+            "node": "Embed Regression Question",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embed Regression Question": {
+      "main": [
+        [
+          {
+            "node": "Retrieve Test Knowledge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retrieve Test Knowledge": {
+      "main": [
+        [
+          {
+            "node": "Build Regression Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Regression Prompt": {
+      "main": [
+        [
+          {
+            "node": "Generate Regression Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Regression Answer": {
+      "main": [
+        [
+          {
+            "node": "Score Regression Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score Regression Result": {
+      "main": [
+        [
+          {
+            "node": "Store Evaluation Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Verified Answer": {
+      "main": [
+        [
+          {
+            "node": "Log Verified Conversation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Needs Clarification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Clarification": {
+      "main": [
+        [
+          {
+            "node": "Log Clarification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Record Knowledge Gap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "versionId": "3ad3346b-6bb9-578e-8d2c-78190331b6fc",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "REPLACE_AFTER_IMPORT"
+  },
+  "tags": [
+    {
+      "id": "86cee982-7c5d-525a-b769-3995a63d5a57",
+      "name": "SchoolTrust AI"
+    },
+    {
+      "id": "7d98059c-4be4-564b-aa50-6302922a063f",
+      "name": "Capstone Project"
+    }
+  ]
+}

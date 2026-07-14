@@ -15,6 +15,7 @@ Student: **Moeen Ahmad Butt**
 - docs/SchoolTrust_AI_SRS.pdf - submission-ready SRS containing the required sections.
 - docs/SchoolTrust_AI_SRS.docx - editable SRS source.
 - n8n/SchoolTrust_AI_Verified_Parent_Support.json - importable n8n workflow.
+- n8n/SchoolTrust_AI_n8n_Cloud.json - credential-based edition for n8n Cloud; use this file for the hosted n8n service.
 - database/supabase_schema.sql - pgvector database, security rules, RPC functions and regression-test seed.
 - web/ - responsive parent assistant and administrator dashboard.
 - data/approved_knowledge.csv - reviewed starter records. They are deliberately marked draft.
@@ -40,6 +41,8 @@ Student: **Moeen Ahmad Butt**
 7. Activate the n8n workflow.
 8. Edit web/config.js with the production webhook base URL and demo administrator token.
 9. Deploy the web folder or embed the parent assistant into the school website.
+
+For n8n Cloud, follow `docs/N8N_CLOUD_SETUP.md`. The Cloud workflow stores Supabase, OpenAI and administrator secrets in encrypted n8n credentials and contains no `$env` references.
 
 ## Security boundary
 

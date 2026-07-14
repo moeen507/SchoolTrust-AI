@@ -4,6 +4,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / "n8n" / "SchoolTrust_AI_Verified_Parent_Support.json"
+CLOUD_WORKFLOW = ROOT / "n8n" / "SchoolTrust_AI_n8n_Cloud.json"
 SCHEMA = ROOT / "database" / "supabase_schema.sql"
 WEB = ROOT / "web"
 
@@ -13,6 +14,11 @@ try:
     workflow = json.loads(WORKFLOW.read_text(encoding="utf-8"))
 except Exception as exc:
     raise SystemExit("Workflow JSON is invalid: " + str(exc))
+
+try:
+    cloud_workflow = json.loads(CLOUD_WORKFLOW.read_text(encoding="utf-8"))
+except Exception as exc:
+    raise SystemExit("Cloud workflow JSON is invalid: " + str(exc))
 
 names = [node.get("name") for node in workflow.get("nodes", [])]
 if len(names) != len(set(names)):
@@ -39,6 +45,21 @@ required_nodes = {
 missing_nodes = sorted(required_nodes.difference(names))
 if missing_nodes:
     errors.append("Missing required workflow nodes: " + ", ".join(missing_nodes))
+
+cloud_names = [node.get("name") for node in cloud_workflow.get("nodes", [])]
+if cloud_names != names:
+    errors.append("Cloud workflow node set differs from the validated workflow.")
+cloud_serialized = json.dumps(cloud_workflow)
+if "$env." in cloud_serialized:
+    errors.append("Cloud workflow contains an unsupported $env reference.")
+if "https://uklalbmvfmdkgqqbsnrk.supabase.co" not in cloud_serialized:
+    errors.append("Cloud workflow does not contain the configured Supabase URL.")
+if "SchoolTrust Supabase" not in cloud_serialized:
+    errors.append("Cloud workflow is missing the Supabase credential mapping.")
+if "SchoolTrust OpenAI" not in cloud_serialized:
+    errors.append("Cloud workflow is missing the OpenAI credential mapping.")
+if "SchoolTrust Admin Header" not in cloud_serialized:
+    errors.append("Cloud workflow is missing the administrator credential mapping.")
 
 schema = SCHEMA.read_text(encoding="utf-8")
 for object_name in [
@@ -69,5 +90,6 @@ if errors:
 
 print("PACKAGE VALIDATION PASSED")
 print("Workflow nodes:", len(names))
+print("Cloud workflow: credential-based, no $env references")
 print("Workflow branches: parent Q&A, admin approval, dashboard, regression evaluation")
 print("Web interface IDs:", len(ids))
