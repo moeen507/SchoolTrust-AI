@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="SchoolTrust AI verified parent support and knowledge improvement system.">
+  <title>SchoolTrust AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#assistant" aria-label="SchoolTrust AI home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48" role="img"><path d="M24 4 5 12v12c0 10.7 7.7 17.6 19 20 11.3-2.4 19-9.3 19-20V12L24 4Z"/><path d="m15.5 24 5.5 5.5L33 17.5"/></svg>
+        </span>
+        <span><strong>SchoolTrust</strong><small>Verified school intelligence</small></span>
+      </a>
+
+      <nav class="nav-list" aria-label="Main navigation">
+        <button class="nav-item active" data-view="assistant">
+          <span class="nav-icon">✦</span><span>Parent Assistant</span>
+        </button>
+        <button class="nav-item" data-view="dashboard">
+          <span class="nav-icon">▦</span><span>Knowledge Health</span>
+        </button>
+        <button class="nav-item" data-view="gaps">
+          <span class="nav-icon">◇</span><span>Gap Review</span>
+          <span class="nav-count" id="gapNavCount">0</span>
+        </button>
+        <button class="nav-item" data-view="tests">
+          <span class="nav-icon">✓</span><span>Quality Tests</span>
+        </button>
+        <button class="nav-item" data-view="about">
+          <span class="nav-icon">i</span><span>Project Scope</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="connection-card">
+          <span class="status-dot" id="connectionDot"></span>
+          <div><strong id="connectionLabel">Setup required</strong><small>n8n workflow connection</small></div>
+        </div>
+        <p>Capstone prototype · v1.0</p>
+      </div>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        <button class="menu-button" id="menuButton" aria-label="Toggle navigation">☰</button>
+        <div>
+          <p class="eyebrow">UMEED EDUCATION SYSTEM · CASE STUDY</p>
+          <h1 id="viewTitle">Parent Assistant</h1>
+        </div>
+        <div class="topbar-actions">
+          <button class="ghost-button" id="refreshButton">Refresh data</button>
+          <div class="avatar" title="Administrator">MA</div>
+        </div>
+      </header>
+
+      <main>
+        <section class="view active" id="view-assistant" data-title="Parent Assistant">
+          <div class="hero-grid">
+            <article class="intro-card">
+              <span class="tag">SOURCE-VERIFIED ANSWERS</span>
+              <h2>Clear school information.<br><span>No guessing.</span></h2>
+              <p>Ask about admissions, fees, classes, school policies or contact information. Critical answers are checked against current, approved sources before they are shown.</p>
+              <div class="trust-row">
+                <span>✓ Approved sources only</span>
+                <span>✓ English and Urdu</span>
+                <span>✓ Human review when uncertain</span>
+              </div>
+            </article>
+
+            <article class="chat-card">
+              <div class="chat-head">
+                <div class="assistant-avatar">S</div>
+                <div><strong>SchoolTrust Assistant</strong><small><span class="online-dot"></span> Verification guardrails active</small></div>
+              </div>
+              <div class="chat-stream" id="chatStream" aria-live="polite">
+                <div class="message assistant">
+                  <div class="bubble">Assalam-o-Alaikum. How may I help you with verified school information today?</div>
+                  <span>SchoolTrust AI</span>
+                </div>
+              </div>
+              <div class="prompt-chips" aria-label="Suggested questions">
+                <button data-question="What is the annual fund for new and promoted students?">Annual fund</button>
+                <button data-question="Which classes does the school offer?">Classes offered</button>
+                <button data-question="What is the current transport fee?">Transport fee</button>
+              </div>
+              <form class="chat-form" id="chatForm">
+                <label class="sr-only" for="questionInput">Ask a school question</label>
+                <textarea id="questionInput" rows="1" maxlength="1000" placeholder="Ask a school question..." required></textarea>
+                <button type="submit" class="send-button" aria-label="Send question">
+                  <svg viewBox="0 0 24 24"><path d="m4 4 16 8-16 8 3-8-3-8Zm3 8h13"/></svg>
+                </button>
+              </form>
+              <p class="chat-disclaimer">SchoolTrust answers only from administrator-approved information.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="view" id="view-dashboard" data-title="Knowledge Health">
+          <div class="section-heading">
+            <div><p class="eyebrow">SYSTEM OVERVIEW</p><h2>Knowledge health</h2><p>Live indicators from approved sources, conversations and quality evaluations.</p></div>
+            <button class="primary-button" id="loadDashboardButton">Load live data</button>
+          </div>
+          <div class="setup-banner" id="setupBanner">
+            <strong>Connect the workflow to load real data.</strong>
+            <span>Edit <code>web/config.js</code> with your n8n URL and administrator demo token.</span>
+          </div>
+          <div class="metric-grid">
+            <article class="metric-card"><span class="metric-icon blue">◆</span><p>Approved knowledge</p><strong id="metricKnowledge">—</strong><small>Active source sections</small></article>
+            <article class="metric-card"><span class="metric-icon amber">◇</span><p>Open knowledge gaps</p><strong id="metricGaps">—</strong><small>Awaiting administrator review</small></article>
+            <article class="metric-card"><span class="metric-icon green">✓</span><p>Verified answers</p><strong id="metricVerified">—</strong><small>Successfully grounded replies</small></article>
+            <article class="metric-card"><span class="metric-icon violet">↗</span><p>7-day test pass rate</p><strong id="metricPassRate">—</strong><small>Regression quality score</small></article>
+          </div>
+          <div class="two-column">
+            <article class="panel">
+              <div class="panel-head"><div><h3>Why this system is different</h3><p>Every answer passes a controlled assurance pipeline.</p></div></div>
+              <ol class="assurance-steps">
+                <li><span>01</span><div><strong>Retrieve approved knowledge</strong><p>Only active, date-valid knowledge is considered.</p></div></li>
+                <li><span>02</span><div><strong>Apply critical-topic thresholds</strong><p>Fees, dates and policies require stronger evidence.</p></div></li>
+                <li><span>03</span><div><strong>Clarify or escalate safely</strong><p>Uncertain questions become reviewable knowledge gaps.</p></div></li>
+                <li><span>04</span><div><strong>Test after improvement</strong><p>Regression questions verify that updates fixed the problem.</p></div></li>
+              </ol>
+            </article>
+            <article class="panel">
+              <div class="panel-head"><div><h3>System boundaries</h3><p>Deliberate limits keep the prototype credible.</p></div></div>
+              <ul class="boundary-list">
+                <li><span class="boundary-icon">×</span><div><strong>No invented school facts</strong><p>Missing information is escalated.</p></div></li>
+                <li><span class="boundary-icon">×</span><div><strong>No public student records</strong><p>Personal academic and fee records stay outside the public assistant.</p></div></li>
+                <li><span class="boundary-icon">×</span><div><strong>No automatic policy publishing</strong><p>An administrator approves every knowledge update.</p></div></li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section class="view" id="view-gaps" data-title="Gap Review">
+          <div class="section-heading">
+            <div><p class="eyebrow">HUMAN-IN-THE-LOOP</p><h2>Knowledge-gap review</h2><p>Questions that could not be answered safely appear here for administrator action.</p></div>
+          </div>
+          <div class="table-panel">
+            <div class="table-toolbar"><span id="gapSummary">No live data loaded</span><button class="ghost-button" data-view-target="dashboard">Refresh dashboard</button></div>
+            <div class="gap-list" id="gapList">
+              <div class="empty-state"><span>◇</span><strong>No data loaded</strong><p>Connect the n8n workflow and load live dashboard data.</p></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="view-tests" data-title="Quality Tests">
+          <div class="section-heading">
+            <div><p class="eyebrow">REGRESSION EVALUATION</p><h2>Answer-quality tests</h2><p>Critical school questions are retested after knowledge changes.</p></div>
+          </div>
+          <div class="table-panel">
+            <div class="test-list" id="testList">
+              <div class="empty-state"><span>✓</span><strong>No results loaded</strong><p>Run the manual quality-test branch in n8n, then refresh the dashboard.</p></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="view-about" data-title="Project Scope">
+          <div class="section-heading">
+            <div><p class="eyebrow">CAPSTONE PROJECT</p><h2>One focused, credible system</h2><p>Built as a student-level implementation of an enterprise RAG customer-support platform.</p></div>
+          </div>
+          <div class="about-grid">
+            <article class="panel"><span class="tag">PROBLEM</span><h3>School information changes, but chatbots do not know what is current.</h3><p>Parents receive generic, incomplete or outdated answers, while administrators have no structured way to identify and repair knowledge failures.</p></article>
+            <article class="panel accent-panel"><span class="tag">SOLUTION</span><h3>Verified answers plus a controlled improvement loop.</h3><p>SchoolTrust checks sources, dates and confidence, escalates uncertainty, records knowledge gaps and retests answers after administrator-approved updates.</p></article>
+          </div>
+          <div class="scope-strip">
+            <div><strong>1</strong><span>School case study</span></div>
+            <div><strong>3</strong><span>Secure webhooks</span></div>
+            <div><strong>4</strong><span>Automation modules</span></div>
+            <div><strong>30+</strong><span>n8n nodes</span></div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <dialog class="approval-dialog" id="approvalDialog">
+    <form method="dialog" class="dialog-card" id="approvalForm">
+      <div class="dialog-head"><div><p class="eyebrow">ADMINISTRATOR APPROVAL</p><h2>Publish verified knowledge</h2></div><button value="cancel" class="close-button" aria-label="Close">×</button></div>
+      <input type="hidden" id="gapId" name="gap_id">
+      <div class="form-grid">
+        <label><span>Document title</span><input id="documentTitle" name="document_title" required placeholder="e.g. Transport Fee Policy"></label>
+        <label><span>Category</span><input id="category" name="category" required placeholder="e.g. transport"></label>
+        <label class="full"><span>Approved content</span><textarea id="approvedContent" name="content" rows="5" minlength="20" required placeholder="Enter the exact information approved for parent responses."></textarea></label>
+        <label><span>Effective from</span><input id="effectiveFrom" name="effective_from" type="date"></label>
+        <label><span>Expires at</span><input id="expiresAt" name="expires_at" type="date"></label>
+        <label class="full"><span>Administrator name</span><input id="actor" name="actor" required value="School Administrator"></label>
+      </div>
+      <div class="dialog-actions"><button value="cancel" class="ghost-button">Cancel</button><button type="submit" class="primary-button">Approve and publish</button></div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status"></div>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

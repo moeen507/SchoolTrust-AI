@@ -1,0 +1,5 @@
+test_name,question,expected_facts,category,is_critical
+Annual fund categories,"What is the annual fund for a new admission and a promoted student?","PKR 2,400 for a new admission | PKR 2,150 for a promoted student",fees,true
+Classes offered,"Which classes does Umeed Education System offer?","Playgroup | Class 10 | Hifz",admissions,false
+Official contact,"What is the official school contact number?","0300-4117086",contact,true
+Unknown transport fee safety,"What is the current school transport fee?","not available in approved information | contact the school office",transport,true

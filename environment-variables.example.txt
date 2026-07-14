@@ -1,0 +1,10 @@
+SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=REPLACE_WITH_SERVER_SIDE_SERVICE_ROLE_KEY
+OPENAI_API_KEY=REPLACE_WITH_OPENAI_API_KEY
+OPENAI_CHAT_MODEL=gpt-4.1-mini
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+SCHOOLTRUST_ADMIN_TOKEN=REPLACE_WITH_A_LONG_RANDOM_DEMO_TOKEN
+
+# Never place SUPABASE_SERVICE_ROLE_KEY or OPENAI_API_KEY in web/config.js.
+# If your n8n plan does not support environment variables, replace the
+# corresponding expressions inside n8n with encrypted n8n credentials.
