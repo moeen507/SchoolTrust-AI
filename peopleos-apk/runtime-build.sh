@@ -8,9 +8,9 @@ umask 077
 : "${PEOPLEOS_KEY_ALIAS:=peopleos}"
 
 KEY_FILE=/tmp/peopleos-release.jks
-UNSIGNED_APK=/opt/peopleos/PeopleOS-v5.9.2-R15-unsigned.apk
+UNSIGNED_APK=/opt/peopleos/PeopleOS-v5.9.2-R16-unsigned.apk
 OUT_DIR=/usr/share/nginx/html
-APK_FILE="$OUT_DIR/PeopleOS-v5.9.2-R15.apk"
+APK_FILE="$OUT_DIR/PeopleOS-v5.9.2-R16.apk"
 APKSIGNER=/opt/android-sdk/build-tools/35.0.0/apksigner
 
 mkdir -p "$OUT_DIR"
@@ -32,5 +32,5 @@ chmod 0644 "$APK_FILE"
 rm -f "$KEY_FILE"
 unset PEOPLEOS_KEYSTORE_B64 PEOPLEOS_KEYSTORE_PASSWORD PEOPLEOS_KEY_PASSWORD
 
-echo "PeopleOS R15 APK ready"
+echo "PeopleOS R16 APK ready"
 exec nginx -g 'daemon off;'
