@@ -4,7 +4,7 @@ ENV ANDROID_HOME=/opt/android-sdk
 ENV PATH=$PATH:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:/opt/gradle-8.9/bin
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends wget unzip ca-certificates coreutils nginx \
+    && apt-get install -y --no-install-recommends wget unzip ca-certificates coreutils nginx nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /opt/android-sdk/cmdline-tools \
@@ -22,7 +22,9 @@ RUN wget -q https://services.gradle.org/distributions/gradle-8.9-bin.zip -O /tmp
 WORKDIR /app
 COPY peopleos-apk/ .
 
-RUN gradle --no-daemon clean assembleRelease \
+RUN node --check app/src/main/assets/peopleos-l10n-r17.js \
+    && node --check app/src/main/assets/peopleos-ai-r17.js \
+    && gradle --no-daemon clean assembleRelease \
     && mkdir -p /opt/peopleos \
     && cp app/build/outputs/apk/release/app-release-unsigned.apk /opt/peopleos/PeopleOS-v5.9.2-R17-unsigned.apk \
     && test -s /opt/peopleos/PeopleOS-v5.9.2-R17-unsigned.apk \
