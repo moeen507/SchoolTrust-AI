@@ -89,14 +89,11 @@ public class MainActivity extends Activity {
         root.addView(splashOverlay, new FrameLayout.LayoutParams(-1, -1));
         setContentView(root);
 
-        nativeEnhancementScript = loadAssetText("native-r15.js");
+        nativeEnhancementScript = loadAssetText("native-r15.js") + "\n" + loadAssetText("peopleos-ai-r16.js");
         configureWebView();
 
-        if (savedInstanceState == null) {
-            webView.loadUrl(buildStartUrl());
-        } else {
-            webView.restoreState(savedInstanceState);
-        }
+        if (savedInstanceState == null) webView.loadUrl(buildStartUrl());
+        else webView.restoreState(savedInstanceState);
     }
 
     private FrameLayout buildSplash(String mode) {
@@ -126,9 +123,7 @@ public class MainActivity extends Activity {
         stack.addView(splashTitle, new LinearLayout.LayoutParams(-2, -2));
         stack.addView(splashSubtitle, new LinearLayout.LayoutParams(-2, -2));
         stack.addView(spinner, new LinearLayout.LayoutParams(-2, -2));
-
-        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER);
-        overlay.addView(stack, lp);
+        overlay.addView(stack, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
         applySplashTheme(mode);
         return overlay;
     }
@@ -160,7 +155,7 @@ public class MainActivity extends Activity {
     private String buildStartUrl() {
         String route = getPreferences(MODE_PRIVATE).getString("peopleos_last_route", "/");
         if (route == null || !route.startsWith("/") || isAuthRoute(route)) route = "/";
-        return APP_ORIGIN + route + (route.contains("?") ? "&" : "?") + "native=android&v=592r15";
+        return APP_ORIGIN + route + (route.contains("?") ? "&" : "?") + "native=android&v=592r16";
     }
 
     private boolean isAuthRoute(String route) {
@@ -172,8 +167,7 @@ public class MainActivity extends Activity {
 
     private String loadAssetText(String name) {
         StringBuilder out = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
-                getAssets().open(name), StandardCharsets.UTF_8))) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(getAssets().open(name), StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) out.append(line).append('\n');
         } catch (IOException e) {
@@ -183,9 +177,7 @@ public class MainActivity extends Activity {
     }
 
     private boolean isTrusted(Uri uri) {
-        return uri != null
-                && "https".equalsIgnoreCase(uri.getScheme())
-                && TRUSTED_HOST.equalsIgnoreCase(uri.getHost());
+        return uri != null && "https".equalsIgnoreCase(uri.getScheme()) && TRUSTED_HOST.equalsIgnoreCase(uri.getHost());
     }
 
     private boolean isTrusted(String value) {
@@ -214,43 +206,35 @@ public class MainActivity extends Activity {
         s.setJavaScriptCanOpenWindowsAutomatically(false);
         s.setSupportMultipleWindows(false);
         s.setOffscreenPreRaster(true);
-        s.setUserAgentString(s.getUserAgentString() + " PeopleOSAndroid/5.9.2-R15");
+        s.setUserAgentString(s.getUserAgentString() + " PeopleOSAndroid/5.9.2-R16");
 
         CookieManager cookies = CookieManager.getInstance();
         cookies.setAcceptCookie(true);
         cookies.setAcceptThirdPartyCookies(webView, true);
-
         webView.addJavascriptInterface(new NativeUiBridge(), "PeopleOSNative");
 
         webView.setWebViewClient(new WebViewClient() {
-            @Override
-            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+            @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
                 if (isTrusted(uri)) return false;
-                try {
-                    startActivity(new Intent(Intent.ACTION_VIEW, uri));
-                } catch (Exception e) {
-                    Toast.makeText(MainActivity.this, "Unable to open this link.", Toast.LENGTH_SHORT).show();
-                }
+                try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); }
+                catch (Exception e) { Toast.makeText(MainActivity.this, "Unable to open this link.", Toast.LENGTH_SHORT).show(); }
                 return true;
             }
 
-            @Override
-            public void onPageStarted(WebView view, String url, Bitmap favicon) {
+            @Override public void onPageStarted(WebView view, String url, Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
                 nativeInjectedForPage = false;
                 progressBar.setVisibility(View.VISIBLE);
                 if (!firstContentReady && splashOverlay != null) splashOverlay.setVisibility(View.VISIBLE);
             }
 
-            @Override
-            public void onPageCommitVisible(WebView view, String url) {
+            @Override public void onPageCommitVisible(WebView view, String url) {
                 super.onPageCommitVisible(view, url);
                 injectNativeOnce(view);
             }
 
-            @Override
-            public void onPageFinished(WebView view, String url) {
+            @Override public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 injectNativeOnce(view);
                 CookieManager.getInstance().flush();
@@ -258,120 +242,80 @@ public class MainActivity extends Activity {
         });
 
         webView.setWebChromeClient(new WebChromeClient() {
-            @Override
-            public void onProgressChanged(WebView view, int newProgress) {
+            @Override public void onProgressChanged(WebView view, int newProgress) {
                 progressBar.setProgress(newProgress);
                 progressBar.setVisibility(newProgress >= 100 ? View.GONE : View.VISIBLE);
                 if (newProgress >= 30) injectNativeOnce(view);
             }
 
-            @Override
-            public void onPermissionRequest(PermissionRequest request) {
+            @Override public void onPermissionRequest(PermissionRequest request) {
                 runOnUiThread(() -> {
                     String origin = request.getOrigin() == null ? "" : request.getOrigin().toString();
-                    if (!isTrusted(origin)) {
-                        request.deny();
-                        return;
-                    }
+                    if (!isTrusted(origin)) { request.deny(); return; }
                     boolean asksCamera = false;
-                    for (String resource : request.getResources()) {
-                        if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)) asksCamera = true;
-                    }
-                    if (!asksCamera) {
-                        request.deny();
-                        return;
-                    }
-                    if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                    for (String resource : request.getResources()) if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)) asksCamera = true;
+                    if (!asksCamera) { request.deny(); return; }
+                    if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
                         request.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
-                    } else {
-                        pendingWebPermission = request;
-                        requestPermissions(new String[]{Manifest.permission.CAMERA}, REQ_CAMERA);
-                    }
+                    else { pendingWebPermission = request; requestPermissions(new String[]{Manifest.permission.CAMERA}, REQ_CAMERA); }
                 });
             }
 
-            @Override
-            public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
-                if (!isTrusted(origin)) {
-                    callback.invoke(origin, false, false);
-                    return;
-                }
-                if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                    callback.invoke(origin, true, false);
-                } else {
+            @Override public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
+                if (!isTrusted(origin)) { callback.invoke(origin, false, false); return; }
+                if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) callback.invoke(origin, true, false);
+                else {
                     pendingGeoCallback = callback;
                     pendingGeoOrigin = origin;
                     requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, REQ_LOCATION);
                 }
             }
 
-            @Override
-            public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
+            @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
                 if (pendingFileCallback != null) pendingFileCallback.onReceiveValue(null);
                 pendingFileCallback = callback;
-                if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED)
                     requestPermissions(new String[]{Manifest.permission.CAMERA}, REQ_FILE_CAMERA);
-                } else {
-                    launchCamera();
-                }
+                else launchCamera();
                 return true;
             }
         });
     }
 
     private void injectNativeOnce(WebView view) {
-        if (nativeInjectedForPage) return;
-        if (view == null || nativeEnhancementScript == null || nativeEnhancementScript.isEmpty()) return;
+        if (nativeInjectedForPage || view == null || nativeEnhancementScript == null || nativeEnhancementScript.isEmpty()) return;
         nativeInjectedForPage = true;
         view.evaluateJavascript(nativeEnhancementScript, null);
     }
 
     private void syncNativeShell(WebView view) {
         if (view == null) return;
-        view.evaluateJavascript("window.__peopleosR15Sync && window.__peopleosR15Sync();", null);
+        view.evaluateJavascript("window.__peopleosR15Sync&&window.__peopleosR15Sync();window.__peopleosAiR16Sync&&window.__peopleosAiR16Sync();", null);
     }
 
     private class NativeUiBridge {
-        @JavascriptInterface
-        public void setSystemTheme(String mode) {
+        @JavascriptInterface public void setSystemTheme(String mode) {
             String safeMode = ("dark".equalsIgnoreCase(mode) || "light".equalsIgnoreCase(mode)) ? mode.toLowerCase() : "ivory";
             getPreferences(MODE_PRIVATE).edit().putString("peopleos_theme", safeMode).apply();
             runOnUiThread(() -> applySystemTheme(safeMode));
         }
-
-        @JavascriptInterface
-        public String getSavedTheme() {
-            return getPreferences(MODE_PRIVATE).getString("peopleos_theme", "ivory");
-        }
-
-        @JavascriptInterface
-        public void setContentReady(boolean authenticated) {
-            runOnUiThread(MainActivity.this::hideSplash);
-        }
-
-        @JavascriptInterface
-        public void rememberRoute(String route) {
+        @JavascriptInterface public String getSavedTheme() { return getPreferences(MODE_PRIVATE).getString("peopleos_theme", "ivory"); }
+        @JavascriptInterface public void setContentReady(boolean authenticated) { runOnUiThread(MainActivity.this::hideSplash); }
+        @JavascriptInterface public void rememberRoute(String route) {
             if (route == null || !route.startsWith("/") || isAuthRoute(route)) return;
             getPreferences(MODE_PRIVATE).edit().putString("peopleos_last_route", route).apply();
         }
     }
 
     private void applySystemTheme(String mode) {
-        boolean dark = "dark".equalsIgnoreCase(mode);
-        boolean light = "light".equalsIgnoreCase(mode);
+        boolean dark = "dark".equalsIgnoreCase(mode), light = "light".equalsIgnoreCase(mode);
         int flags;
         if (dark) {
-            getWindow().setStatusBarColor(Color.rgb(24, 18, 21));
-            getWindow().setNavigationBarColor(Color.rgb(18, 14, 16));
-            flags = 0;
+            getWindow().setStatusBarColor(Color.rgb(24,18,21)); getWindow().setNavigationBarColor(Color.rgb(18,14,16)); flags=0;
         } else if (light) {
-            getWindow().setStatusBarColor(Color.rgb(250, 250, 250));
-            getWindow().setNavigationBarColor(Color.rgb(250, 250, 250));
-            flags = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+            getWindow().setStatusBarColor(Color.rgb(250,250,250)); getWindow().setNavigationBarColor(Color.rgb(250,250,250)); flags=View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
         } else {
-            getWindow().setStatusBarColor(Color.rgb(247, 243, 236));
-            getWindow().setNavigationBarColor(Color.rgb(247, 243, 236));
-            flags = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+            getWindow().setStatusBarColor(Color.rgb(247,243,236)); getWindow().setNavigationBarColor(Color.rgb(247,243,236)); flags=View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
         }
         getWindow().getDecorView().setSystemUiVisibility(flags);
         if (webView != null) webView.setBackgroundColor(backgroundForTheme(mode));
@@ -390,39 +334,25 @@ public class MainActivity extends Activity {
             startActivityForResult(camera, REQ_FILE_CHOOSER);
         } catch (Exception e) {
             if (pendingFileCallback != null) pendingFileCallback.onReceiveValue(null);
-            pendingFileCallback = null;
-            pendingCameraUri = null;
+            pendingFileCallback = null; pendingCameraUri = null;
             Toast.makeText(this, "No camera app is available.", Toast.LENGTH_SHORT).show();
         }
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         boolean granted = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
-        if (requestCode == REQ_CAMERA) {
-            if (pendingWebPermission != null) {
-                if (granted) pendingWebPermission.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
-                else pendingWebPermission.deny();
-                pendingWebPermission = null;
-            }
-        } else if (requestCode == REQ_LOCATION) {
-            if (pendingGeoCallback != null) {
-                pendingGeoCallback.invoke(pendingGeoOrigin, granted, false);
-                pendingGeoCallback = null;
-                pendingGeoOrigin = null;
-            }
+        if (requestCode == REQ_CAMERA && pendingWebPermission != null) {
+            if (granted) pendingWebPermission.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE}); else pendingWebPermission.deny();
+            pendingWebPermission = null;
+        } else if (requestCode == REQ_LOCATION && pendingGeoCallback != null) {
+            pendingGeoCallback.invoke(pendingGeoOrigin, granted, false); pendingGeoCallback=null; pendingGeoOrigin=null;
         } else if (requestCode == REQ_FILE_CAMERA) {
-            if (granted) launchCamera();
-            else if (pendingFileCallback != null) {
-                pendingFileCallback.onReceiveValue(null);
-                pendingFileCallback = null;
-            }
+            if (granted) launchCamera(); else if (pendingFileCallback != null) { pendingFileCallback.onReceiveValue(null); pendingFileCallback=null; }
         }
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode != REQ_FILE_CHOOSER || pendingFileCallback == null) return;
         Uri[] result = null;
@@ -430,47 +360,15 @@ public class MainActivity extends Activity {
             if (data != null && data.getData() != null) result = new Uri[]{data.getData()};
             else if (pendingCameraUri != null) result = new Uri[]{pendingCameraUri};
         }
-        pendingFileCallback.onReceiveValue(result);
-        pendingFileCallback = null;
-        pendingCameraUri = null;
+        pendingFileCallback.onReceiveValue(result); pendingFileCallback=null; pendingCameraUri=null;
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (webView != null) {
-            webView.onResume();
-            syncNativeShell(webView);
-        }
-    }
-
-    @Override
-    protected void onPause() {
-        if (webView != null) webView.onPause();
-        CookieManager.getInstance().flush();
-        super.onPause();
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (webView != null && webView.canGoBack()) webView.goBack();
-        else super.onBackPressed();
-    }
-
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        if (webView != null) webView.saveState(outState);
-        super.onSaveInstanceState(outState);
-    }
-
-    @Override
-    protected void onDestroy() {
-        if (webView != null) {
-            webView.removeJavascriptInterface("PeopleOSNative");
-            webView.loadUrl("about:blank");
-            webView.stopLoading();
-            webView.destroy();
-        }
+    @Override protected void onResume() { super.onResume(); if (webView != null) { webView.onResume(); syncNativeShell(webView); } }
+    @Override protected void onPause() { if (webView != null) webView.onPause(); CookieManager.getInstance().flush(); super.onPause(); }
+    @Override public void onBackPressed() { if (webView != null && webView.canGoBack()) webView.goBack(); else super.onBackPressed(); }
+    @Override protected void onSaveInstanceState(Bundle outState) { if (webView != null) webView.saveState(outState); super.onSaveInstanceState(outState); }
+    @Override protected void onDestroy() {
+        if (webView != null) { webView.removeJavascriptInterface("PeopleOSNative"); webView.loadUrl("about:blank"); webView.stopLoading(); webView.destroy(); }
         super.onDestroy();
     }
 }
