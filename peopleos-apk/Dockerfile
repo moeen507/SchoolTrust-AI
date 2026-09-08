@@ -26,8 +26,8 @@ RUN node --check app/src/main/assets/peopleos-l10n-r17.js \
     && node --check app/src/main/assets/peopleos-ai-r17.js \
     && gradle --no-daemon clean assembleRelease \
     && mkdir -p /opt/peopleos \
-    && cp app/build/outputs/apk/release/app-release-unsigned.apk /opt/peopleos/PeopleOS-v5.9.2-R17-unsigned.apk \
-    && test -s /opt/peopleos/PeopleOS-v5.9.2-R17-unsigned.apk \
+    && cp app/build/outputs/apk/release/app-release-unsigned.apk /opt/peopleos/PeopleOS-v5.9.2-R18-unsigned.apk \
+    && test -s /opt/peopleos/PeopleOS-v5.9.2-R18-unsigned.apk \
     && chmod 0755 /app/runtime-build.sh \
     && mkdir -p /usr/share/nginx/html \
     && rm -f /etc/nginx/sites-enabled/default \
@@ -37,16 +37,16 @@ server {
     server_name _;
     root /usr/share/nginx/html;
 
-    location = /PeopleOS-v5.9.2-R17.apk {
+    location = /PeopleOS-v5.9.2-R18.apk {
         default_type application/vnd.android.package-archive;
-        add_header Content-Disposition 'attachment; filename="PeopleOS-v5.9.2-R17.apk"' always;
+        add_header Content-Disposition 'attachment; filename="PeopleOS-v5.9.2-R18.apk"' always;
         add_header Cache-Control "no-store, no-cache, must-revalidate" always;
         add_header X-Content-Type-Options "nosniff" always;
         try_files $uri =404;
     }
 
     location / {
-        return 302 /PeopleOS-v5.9.2-R17.apk;
+        return 302 /PeopleOS-v5.9.2-R18.apk;
     }
 }
 EOF
