@@ -6,9 +6,11 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.view.Gravity;
 import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.GeolocationPermissions;
@@ -21,7 +23,9 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.core.content.FileProvider;
@@ -33,7 +37,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends Activity {
-    private static final String APP_URL = "https://hrm.umeedschool.com/?native=android&v=592r14";
+    private static final String APP_ORIGIN = "https://hrm.umeedschool.com";
     private static final String TRUSTED_HOST = "hrm.umeedschool.com";
     private static final int REQ_CAMERA = 4101;
     private static final int REQ_LOCATION = 4102;
@@ -42,6 +46,10 @@ public class MainActivity extends Activity {
 
     private WebView webView;
     private ProgressBar progressBar;
+    private FrameLayout splashOverlay;
+    private TextView splashTitle;
+    private TextView splashSubtitle;
+    private boolean firstContentReady = false;
     private PermissionRequest pendingWebPermission;
     private GeolocationPermissions.Callback pendingGeoCallback;
     private String pendingGeoOrigin;
@@ -57,10 +65,10 @@ public class MainActivity extends Activity {
         applySystemTheme(savedTheme);
 
         FrameLayout root = new FrameLayout(this);
-        root.setBackgroundColor(Color.rgb(247, 243, 236));
+        root.setBackgroundColor(backgroundForTheme(savedTheme));
 
         webView = new WebView(this);
-        webView.setBackgroundColor(Color.rgb(247, 243, 236));
+        webView.setBackgroundColor(backgroundForTheme(savedTheme));
         webView.setVerticalScrollBarEnabled(true);
         webView.setHorizontalScrollBarEnabled(false);
         webView.setScrollbarFadingEnabled(true);
@@ -69,6 +77,7 @@ public class MainActivity extends Activity {
         webView.setNestedScrollingEnabled(true);
         webView.setFocusable(true);
         webView.setFocusableInTouchMode(true);
+        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         webView.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, true);
 
         progressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
@@ -76,16 +85,89 @@ public class MainActivity extends Activity {
 
         root.addView(webView, new FrameLayout.LayoutParams(-1, -1));
         root.addView(progressBar, new FrameLayout.LayoutParams(-1, 4));
+        splashOverlay = buildSplash(savedTheme);
+        root.addView(splashOverlay, new FrameLayout.LayoutParams(-1, -1));
         setContentView(root);
 
-        nativeEnhancementScript = loadAssetText("native-r14.js");
+        nativeEnhancementScript = loadAssetText("native-r15.js");
         configureWebView();
 
         if (savedInstanceState == null) {
-            webView.loadUrl(APP_URL);
+            webView.loadUrl(buildStartUrl());
         } else {
             webView.restoreState(savedInstanceState);
         }
+    }
+
+    private FrameLayout buildSplash(String mode) {
+        FrameLayout overlay = new FrameLayout(this);
+        overlay.setBackgroundColor(backgroundForTheme(mode));
+        overlay.setClickable(true);
+        overlay.setFocusable(true);
+
+        LinearLayout stack = new LinearLayout(this);
+        stack.setOrientation(LinearLayout.VERTICAL);
+        stack.setGravity(Gravity.CENTER);
+        stack.setPadding(32, 32, 32, 32);
+
+        splashTitle = new TextView(this);
+        splashTitle.setText("PeopleOS");
+        splashTitle.setTextSize(28f);
+        splashTitle.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        splashTitle.setGravity(Gravity.CENTER);
+
+        splashSubtitle = new TextView(this);
+        splashSubtitle.setText("Umeed Education System");
+        splashSubtitle.setTextSize(13f);
+        splashSubtitle.setGravity(Gravity.CENTER);
+        splashSubtitle.setPadding(0, 8, 0, 22);
+
+        ProgressBar spinner = new ProgressBar(this);
+        stack.addView(splashTitle, new LinearLayout.LayoutParams(-2, -2));
+        stack.addView(splashSubtitle, new LinearLayout.LayoutParams(-2, -2));
+        stack.addView(spinner, new LinearLayout.LayoutParams(-2, -2));
+
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER);
+        overlay.addView(stack, lp);
+        applySplashTheme(mode);
+        return overlay;
+    }
+
+    private int backgroundForTheme(String mode) {
+        if ("dark".equalsIgnoreCase(mode)) return Color.rgb(23, 18, 21);
+        if ("light".equalsIgnoreCase(mode)) return Color.rgb(250, 250, 250);
+        return Color.rgb(247, 243, 236);
+    }
+
+    private void applySplashTheme(String mode) {
+        if (splashOverlay == null || splashTitle == null || splashSubtitle == null) return;
+        boolean dark = "dark".equalsIgnoreCase(mode);
+        splashOverlay.setBackgroundColor(backgroundForTheme(mode));
+        splashTitle.setTextColor(dark ? Color.rgb(248, 240, 243) : Color.rgb(50, 34, 41));
+        splashSubtitle.setTextColor(dark ? Color.rgb(195, 180, 186) : Color.rgb(117, 96, 104));
+    }
+
+    private void hideSplash() {
+        if (firstContentReady) return;
+        firstContentReady = true;
+        if (splashOverlay == null || splashOverlay.getVisibility() != View.VISIBLE) return;
+        splashOverlay.animate().alpha(0f).setDuration(180).withEndAction(() -> {
+            splashOverlay.setVisibility(View.GONE);
+            splashOverlay.setAlpha(1f);
+        }).start();
+    }
+
+    private String buildStartUrl() {
+        String route = getPreferences(MODE_PRIVATE).getString("peopleos_last_route", "/");
+        if (route == null || !route.startsWith("/") || isAuthRoute(route)) route = "/";
+        return APP_ORIGIN + route + (route.contains("?") ? "&" : "?") + "native=android&v=592r15";
+    }
+
+    private boolean isAuthRoute(String route) {
+        String value = route == null ? "" : route.toLowerCase();
+        return value.contains("/login") || value.contains("/signin") || value.contains("/sign-in")
+                || value.contains("/signup") || value.contains("/register")
+                || value.contains("forgot-password") || value.contains("reset-password");
     }
 
     private String loadAssetText(String name) {
@@ -131,7 +213,8 @@ public class MainActivity extends Activity {
         s.setLoadsImagesAutomatically(true);
         s.setJavaScriptCanOpenWindowsAutomatically(false);
         s.setSupportMultipleWindows(false);
-        s.setUserAgentString(s.getUserAgentString() + " PeopleOSAndroid/5.9.2-R14");
+        s.setOffscreenPreRaster(true);
+        s.setUserAgentString(s.getUserAgentString() + " PeopleOSAndroid/5.9.2-R15");
 
         CookieManager cookies = CookieManager.getInstance();
         cookies.setAcceptCookie(true);
@@ -157,6 +240,7 @@ public class MainActivity extends Activity {
                 super.onPageStarted(view, url, favicon);
                 nativeInjectedForPage = false;
                 progressBar.setVisibility(View.VISIBLE);
+                if (!firstContentReady && splashOverlay != null) splashOverlay.setVisibility(View.VISIBLE);
             }
 
             @Override
@@ -178,7 +262,7 @@ public class MainActivity extends Activity {
             public void onProgressChanged(WebView view, int newProgress) {
                 progressBar.setProgress(newProgress);
                 progressBar.setVisibility(newProgress >= 100 ? View.GONE : View.VISIBLE);
-                if (newProgress >= 45) injectNativeOnce(view);
+                if (newProgress >= 30) injectNativeOnce(view);
             }
 
             @Override
@@ -244,14 +328,31 @@ public class MainActivity extends Activity {
 
     private void syncNativeShell(WebView view) {
         if (view == null) return;
-        view.evaluateJavascript("window.__peopleosR14Sync && window.__peopleosR14Sync();", null);
+        view.evaluateJavascript("window.__peopleosR15Sync && window.__peopleosR15Sync();", null);
     }
 
     private class NativeUiBridge {
         @JavascriptInterface
         public void setSystemTheme(String mode) {
-            getPreferences(MODE_PRIVATE).edit().putString("peopleos_theme", mode == null ? "ivory" : mode).apply();
-            runOnUiThread(() -> applySystemTheme(mode));
+            String safeMode = ("dark".equalsIgnoreCase(mode) || "light".equalsIgnoreCase(mode)) ? mode.toLowerCase() : "ivory";
+            getPreferences(MODE_PRIVATE).edit().putString("peopleos_theme", safeMode).apply();
+            runOnUiThread(() -> applySystemTheme(safeMode));
+        }
+
+        @JavascriptInterface
+        public String getSavedTheme() {
+            return getPreferences(MODE_PRIVATE).getString("peopleos_theme", "ivory");
+        }
+
+        @JavascriptInterface
+        public void setContentReady(boolean authenticated) {
+            runOnUiThread(MainActivity.this::hideSplash);
+        }
+
+        @JavascriptInterface
+        public void rememberRoute(String route) {
+            if (route == null || !route.startsWith("/") || isAuthRoute(route)) return;
+            getPreferences(MODE_PRIVATE).edit().putString("peopleos_last_route", route).apply();
         }
     }
 
@@ -263,19 +364,18 @@ public class MainActivity extends Activity {
             getWindow().setStatusBarColor(Color.rgb(24, 18, 21));
             getWindow().setNavigationBarColor(Color.rgb(18, 14, 16));
             flags = 0;
-            if (webView != null) webView.setBackgroundColor(Color.rgb(24, 18, 21));
         } else if (light) {
             getWindow().setStatusBarColor(Color.rgb(250, 250, 250));
             getWindow().setNavigationBarColor(Color.rgb(250, 250, 250));
             flags = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
-            if (webView != null) webView.setBackgroundColor(Color.rgb(250, 250, 250));
         } else {
             getWindow().setStatusBarColor(Color.rgb(247, 243, 236));
             getWindow().setNavigationBarColor(Color.rgb(247, 243, 236));
             flags = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
-            if (webView != null) webView.setBackgroundColor(Color.rgb(247, 243, 236));
         }
         getWindow().getDecorView().setSystemUiVisibility(flags);
+        if (webView != null) webView.setBackgroundColor(backgroundForTheme(mode));
+        applySplashTheme(mode);
     }
 
     private void launchCamera() {
@@ -342,6 +442,13 @@ public class MainActivity extends Activity {
             webView.onResume();
             syncNativeShell(webView);
         }
+    }
+
+    @Override
+    protected void onPause() {
+        if (webView != null) webView.onPause();
+        CookieManager.getInstance().flush();
+        super.onPause();
     }
 
     @Override
