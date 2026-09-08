@@ -62,6 +62,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         String savedTheme = getPreferences(MODE_PRIVATE).getString("peopleos_theme", "ivory");
+        String savedLanguage = getPreferences(MODE_PRIVATE).getString("peopleos_language", "en");
         applySystemTheme(savedTheme);
 
         FrameLayout root = new FrameLayout(this);
@@ -85,18 +86,20 @@ public class MainActivity extends Activity {
 
         root.addView(webView, new FrameLayout.LayoutParams(-1, -1));
         root.addView(progressBar, new FrameLayout.LayoutParams(-1, 4));
-        splashOverlay = buildSplash(savedTheme);
+        splashOverlay = buildSplash(savedTheme, savedLanguage);
         root.addView(splashOverlay, new FrameLayout.LayoutParams(-1, -1));
         setContentView(root);
 
-        nativeEnhancementScript = loadAssetText("native-r15.js") + "\n" + loadAssetText("peopleos-ai-r16.js");
+        nativeEnhancementScript = loadAssetText("native-r15.js") + "\n"
+                + loadAssetText("peopleos-l10n-r17.js") + "\n"
+                + loadAssetText("peopleos-ai-r17.js");
         configureWebView();
 
         if (savedInstanceState == null) webView.loadUrl(buildStartUrl());
         else webView.restoreState(savedInstanceState);
     }
 
-    private FrameLayout buildSplash(String mode) {
+    private FrameLayout buildSplash(String mode, String language) {
         FrameLayout overlay = new FrameLayout(this);
         overlay.setBackgroundColor(backgroundForTheme(mode));
         overlay.setClickable(true);
@@ -114,7 +117,6 @@ public class MainActivity extends Activity {
         splashTitle.setGravity(Gravity.CENTER);
 
         splashSubtitle = new TextView(this);
-        splashSubtitle.setText("Umeed Education System");
         splashSubtitle.setTextSize(13f);
         splashSubtitle.setGravity(Gravity.CENTER);
         splashSubtitle.setPadding(0, 8, 0, 22);
@@ -125,6 +127,7 @@ public class MainActivity extends Activity {
         stack.addView(spinner, new LinearLayout.LayoutParams(-2, -2));
         overlay.addView(stack, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
         applySplashTheme(mode);
+        applySplashLanguage(language);
         return overlay;
     }
 
@@ -142,6 +145,13 @@ public class MainActivity extends Activity {
         splashSubtitle.setTextColor(dark ? Color.rgb(195, 180, 186) : Color.rgb(117, 96, 104));
     }
 
+    private void applySplashLanguage(String language) {
+        if (splashSubtitle == null) return;
+        boolean urdu = "ur".equalsIgnoreCase(language);
+        splashSubtitle.setText(urdu ? "امید ایجوکیشن سسٹم" : "Umeed Education System");
+        splashSubtitle.setGravity(Gravity.CENTER);
+    }
+
     private void hideSplash() {
         if (firstContentReady) return;
         firstContentReady = true;
@@ -155,7 +165,7 @@ public class MainActivity extends Activity {
     private String buildStartUrl() {
         String route = getPreferences(MODE_PRIVATE).getString("peopleos_last_route", "/");
         if (route == null || !route.startsWith("/") || isAuthRoute(route)) route = "/";
-        return APP_ORIGIN + route + (route.contains("?") ? "&" : "?") + "native=android&v=592r16";
+        return APP_ORIGIN + route + (route.contains("?") ? "&" : "?") + "native=android&v=592r17";
     }
 
     private boolean isAuthRoute(String route) {
@@ -206,7 +216,7 @@ public class MainActivity extends Activity {
         s.setJavaScriptCanOpenWindowsAutomatically(false);
         s.setSupportMultipleWindows(false);
         s.setOffscreenPreRaster(true);
-        s.setUserAgentString(s.getUserAgentString() + " PeopleOSAndroid/5.9.2-R16");
+        s.setUserAgentString(s.getUserAgentString() + " PeopleOSAndroid/5.9.2-R17");
 
         CookieManager cookies = CookieManager.getInstance();
         cookies.setAcceptCookie(true);
@@ -290,7 +300,7 @@ public class MainActivity extends Activity {
 
     private void syncNativeShell(WebView view) {
         if (view == null) return;
-        view.evaluateJavascript("window.__peopleosR15Sync&&window.__peopleosR15Sync();window.__peopleosAiR16Sync&&window.__peopleosAiR16Sync();", null);
+        view.evaluateJavascript("window.__peopleosR15Sync&&window.__peopleosR15Sync();window.__peopleosR17LocaleSync&&window.__peopleosR17LocaleSync();window.__peopleosAiR17Sync&&window.__peopleosAiR17Sync();", null);
     }
 
     private class NativeUiBridge {
@@ -300,6 +310,12 @@ public class MainActivity extends Activity {
             runOnUiThread(() -> applySystemTheme(safeMode));
         }
         @JavascriptInterface public String getSavedTheme() { return getPreferences(MODE_PRIVATE).getString("peopleos_theme", "ivory"); }
+        @JavascriptInterface public void setAppLanguage(String value) {
+            String safe = "ur".equalsIgnoreCase(value) ? "ur" : "en";
+            getPreferences(MODE_PRIVATE).edit().putString("peopleos_language", safe).apply();
+            runOnUiThread(() -> applySplashLanguage(safe));
+        }
+        @JavascriptInterface public String getSavedLanguage() { return getPreferences(MODE_PRIVATE).getString("peopleos_language", "en"); }
         @JavascriptInterface public void setContentReady(boolean authenticated) { runOnUiThread(MainActivity.this::hideSplash); }
         @JavascriptInterface public void rememberRoute(String route) {
             if (route == null || !route.startsWith("/") || isAuthRoute(route)) return;
@@ -311,11 +327,17 @@ public class MainActivity extends Activity {
         boolean dark = "dark".equalsIgnoreCase(mode), light = "light".equalsIgnoreCase(mode);
         int flags;
         if (dark) {
-            getWindow().setStatusBarColor(Color.rgb(24,18,21)); getWindow().setNavigationBarColor(Color.rgb(18,14,16)); flags=0;
+            getWindow().setStatusBarColor(Color.rgb(24,18,21));
+            getWindow().setNavigationBarColor(Color.rgb(18,14,16));
+            flags = 0;
         } else if (light) {
-            getWindow().setStatusBarColor(Color.rgb(250,250,250)); getWindow().setNavigationBarColor(Color.rgb(250,250,250)); flags=View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+            getWindow().setStatusBarColor(Color.rgb(250,250,250));
+            getWindow().setNavigationBarColor(Color.rgb(250,250,250));
+            flags = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
         } else {
-            getWindow().setStatusBarColor(Color.rgb(247,243,236)); getWindow().setNavigationBarColor(Color.rgb(247,243,236)); flags=View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+            getWindow().setStatusBarColor(Color.rgb(247,243,236));
+            getWindow().setNavigationBarColor(Color.rgb(247,243,236));
+            flags = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
         }
         getWindow().getDecorView().setSystemUiVisibility(flags);
         if (webView != null) webView.setBackgroundColor(backgroundForTheme(mode));
@@ -334,7 +356,8 @@ public class MainActivity extends Activity {
             startActivityForResult(camera, REQ_FILE_CHOOSER);
         } catch (Exception e) {
             if (pendingFileCallback != null) pendingFileCallback.onReceiveValue(null);
-            pendingFileCallback = null; pendingCameraUri = null;
+            pendingFileCallback = null;
+            pendingCameraUri = null;
             Toast.makeText(this, "No camera app is available.", Toast.LENGTH_SHORT).show();
         }
     }
@@ -343,12 +366,16 @@ public class MainActivity extends Activity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         boolean granted = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
         if (requestCode == REQ_CAMERA && pendingWebPermission != null) {
-            if (granted) pendingWebPermission.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE}); else pendingWebPermission.deny();
+            if (granted) pendingWebPermission.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
+            else pendingWebPermission.deny();
             pendingWebPermission = null;
         } else if (requestCode == REQ_LOCATION && pendingGeoCallback != null) {
-            pendingGeoCallback.invoke(pendingGeoOrigin, granted, false); pendingGeoCallback=null; pendingGeoOrigin=null;
+            pendingGeoCallback.invoke(pendingGeoOrigin, granted, false);
+            pendingGeoCallback = null;
+            pendingGeoOrigin = null;
         } else if (requestCode == REQ_FILE_CAMERA) {
-            if (granted) launchCamera(); else if (pendingFileCallback != null) { pendingFileCallback.onReceiveValue(null); pendingFileCallback=null; }
+            if (granted) launchCamera();
+            else if (pendingFileCallback != null) { pendingFileCallback.onReceiveValue(null); pendingFileCallback = null; }
         }
     }
 
@@ -360,15 +387,39 @@ public class MainActivity extends Activity {
             if (data != null && data.getData() != null) result = new Uri[]{data.getData()};
             else if (pendingCameraUri != null) result = new Uri[]{pendingCameraUri};
         }
-        pendingFileCallback.onReceiveValue(result); pendingFileCallback=null; pendingCameraUri=null;
+        pendingFileCallback.onReceiveValue(result);
+        pendingFileCallback = null;
+        pendingCameraUri = null;
     }
 
-    @Override protected void onResume() { super.onResume(); if (webView != null) { webView.onResume(); syncNativeShell(webView); } }
-    @Override protected void onPause() { if (webView != null) webView.onPause(); CookieManager.getInstance().flush(); super.onPause(); }
-    @Override public void onBackPressed() { if (webView != null && webView.canGoBack()) webView.goBack(); else super.onBackPressed(); }
-    @Override protected void onSaveInstanceState(Bundle outState) { if (webView != null) webView.saveState(outState); super.onSaveInstanceState(outState); }
+    @Override protected void onResume() {
+        super.onResume();
+        if (webView != null) { webView.onResume(); syncNativeShell(webView); }
+    }
+
+    @Override protected void onPause() {
+        if (webView != null) webView.onPause();
+        CookieManager.getInstance().flush();
+        super.onPause();
+    }
+
+    @Override public void onBackPressed() {
+        if (webView != null && webView.canGoBack()) webView.goBack();
+        else super.onBackPressed();
+    }
+
+    @Override protected void onSaveInstanceState(Bundle outState) {
+        if (webView != null) webView.saveState(outState);
+        super.onSaveInstanceState(outState);
+    }
+
     @Override protected void onDestroy() {
-        if (webView != null) { webView.removeJavascriptInterface("PeopleOSNative"); webView.loadUrl("about:blank"); webView.stopLoading(); webView.destroy(); }
+        if (webView != null) {
+            webView.removeJavascriptInterface("PeopleOSNative");
+            webView.loadUrl("about:blank");
+            webView.stopLoading();
+            webView.destroy();
+        }
         super.onDestroy();
     }
 }
