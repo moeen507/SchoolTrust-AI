@@ -66,9 +66,7 @@
         html[data-native-app='android'] main .page-container *,
         html[data-native-app='android'] .attendance-premium-page *,
         html[data-native-app='android'] .employee-dashboard-v585 *,
-        html[data-native-app='android'] .home-dashboard-v584 *{
-          min-width:0;
-        }
+        html[data-native-app='android'] .home-dashboard-v584 *{min-width:0}
         html[data-native-app='android'] img,
         html[data-native-app='android'] video,
         html[data-native-app='android'] canvas,
@@ -122,12 +120,8 @@
           --native-maroon-deep:#5e102b;
         }
         html[data-native-ui='r13'] body{
-          background:
-            radial-gradient(circle at 92% 1%,hsl(var(--accent)/.075),transparent 22rem),
-            radial-gradient(circle at 2% 12%,hsl(var(--primary)/.05),transparent 20rem),
-            hsl(var(--background))!important;
+          background:radial-gradient(circle at 92% 1%,hsl(var(--accent)/.075),transparent 22rem),radial-gradient(circle at 2% 12%,hsl(var(--primary)/.05),transparent 20rem),hsl(var(--background))!important;
         }
-
         html[data-native-ui='r13'] h1{
           font-size:clamp(1.75rem,7.3vw,2.35rem)!important;
           line-height:1.06!important;
@@ -169,8 +163,7 @@
         }
 
         html[data-native-ui='r13'] .peopleos-mobile-dock{display:none!important}
-        #peopleos-native-appbar,
-        #peopleos-native-dock{font-family:inherit}
+        #peopleos-native-appbar,#peopleos-native-dock{font-family:inherit}
         #peopleos-native-appbar{
           display:none;
           position:fixed;
@@ -328,9 +321,7 @@
           padding:clamp(14px,4vw,20px)!important;
         }
         html[data-native-ui='r13'] .attendance-premium-page button,
-        html[data-native-ui='r13'] .attendance-premium-page a{
-          max-width:100%!important;
-        }
+        html[data-native-ui='r13'] .attendance-premium-page a{max-width:100%!important}
         html[data-native-ui='r13'] .emp-btn,
         html[data-native-ui='r13'] .mobile-attendance-hero-actions button,
         html[data-native-ui='r13'] .mobile-att-actions button{
@@ -360,9 +351,7 @@
           #peopleos-native-appbar .native-actions .native-notification-btn{display:none!important}
           #peopleos-native-dock .native-dock-label{font-size:8.5px}
         }
-        @media(min-width:901px){
-          #peopleos-native-appbar,#peopleos-native-dock{display:none!important}
-        }
+        @media(min-width:901px){#peopleos-native-appbar,#peopleos-native-dock{display:none!important}}
       `;
       (document.head || d).appendChild(style);
     }
@@ -410,9 +399,7 @@
     };
     const syncNativeBars = () => {
       try {
-        if (window.PeopleOSNative && typeof window.PeopleOSNative.setSystemTheme === 'function') {
-          window.PeopleOSNative.setSystemTheme(detectTheme());
-        }
+        if (window.PeopleOSNative && typeof window.PeopleOSNative.setSystemTheme === 'function') window.PeopleOSNative.setSystemTheme(detectTheme());
       } catch (_) {}
     };
     const fallbackThemeCycle = () => {
@@ -449,24 +436,22 @@
           if (!clickOriginal(['theme','appearance','dark','light','ivory','mode'])) fallbackThemeCycle();
           setTimeout(syncNativeBars, 180);
         });
-        bar.querySelector('.native-notification-btn').addEventListener('click', () => {
-          clickOriginal(['notification','bell','alerts']);
-        });
+        bar.querySelector('.native-notification-btn').addEventListener('click', () => clickOriginal(['notification','bell','alerts']));
       }
       const [eyebrow, title] = pageMeta();
       const eyebrowEl = bar.querySelector('.native-eyebrow');
       const titleEl = bar.querySelector('.native-title');
-      if (eyebrowEl) eyebrowEl.textContent = eyebrow;
-      if (titleEl) titleEl.textContent = title;
+      if (eyebrowEl && eyebrowEl.textContent !== eyebrow) eyebrowEl.textContent = eyebrow;
+      if (titleEl && titleEl.textContent !== title) titleEl.textContent = title;
       bar.classList.toggle('native-visible', !isAuthPath());
       return bar;
     };
 
-    const findHref = (terms, fallback) => {
+    const findHref = (terms, fallback, excludes = []) => {
       const anchors = Array.from(document.querySelectorAll('.peopleos-mobile-dock a, nav a'));
       const hit = anchors.find(a => {
         const hay = `${a.textContent || ''} ${a.getAttribute('href') || ''}`.toLowerCase();
-        return terms.some(t => hay.includes(t));
+        return terms.some(t => hay.includes(t)) && !excludes.some(t => hay.includes(t));
       });
       return hit && hit.getAttribute('href') ? hit.getAttribute('href') : fallback;
     };
@@ -475,7 +460,7 @@
       const items = [
         ['home','Home',findHref(['home','dashboard'],'/'),icons.home],
         ['punch','Punch',findHref(['mobile-attendance','mobile attendance','punch'],'/mobile-attendance'),icons.punch],
-        ['attendance','Attendance',findHref(['attendance'],'/attendance'),icons.attendance],
+        ['attendance','Attendance',findHref(['attendance'],'/attendance',['mobile-attendance','mobile attendance']),icons.attendance],
         ['payroll','Payroll',findHref(['payroll'],'/payroll'),icons.payroll],
         ['profile','Profile',findHref(['profile'],'/profile'),icons.profile]
       ];
@@ -485,7 +470,11 @@
         dock.setAttribute('aria-label','Primary mobile navigation');
         document.body.appendChild(dock);
       }
-      dock.innerHTML = items.map(([key,label,href,icon]) => `<a class="native-dock-link" data-native-route="${key}" href="${href}" aria-label="${key === 'punch' ? 'Mobile Attendance' : label}">${icon}<span class="native-dock-label">${label}</span></a>`).join('');
+      const signature = items.map(([key,label,href]) => `${key}:${label}:${href}`).join('|');
+      if (dock.dataset.signature !== signature) {
+        dock.dataset.signature = signature;
+        dock.innerHTML = items.map(([key,label,href,icon]) => `<a class="native-dock-link" data-native-route="${key}" href="${href}" aria-label="${key === 'punch' ? 'Mobile Attendance' : label}">${icon}<span class="native-dock-label">${label}</span></a>`).join('');
+      }
       const path = location.pathname.toLowerCase();
       dock.querySelectorAll('.native-dock-link').forEach(link => {
         const key = link.dataset.nativeRoute;
@@ -515,9 +504,7 @@
     const syncShell = () => {
       clearTimeout(syncTimer);
       syncTimer = setTimeout(() => {
-        if (document.body && !document.body.classList.contains('peopleos-native-r13')) {
-          document.body.classList.add('peopleos-native-android','peopleos-native-r13');
-        }
+        if (document.body && !document.body.classList.contains('peopleos-native-r13')) document.body.classList.add('peopleos-native-android','peopleos-native-r13');
         unlockScroll();
         ensureAppbar();
         ensureDock();
@@ -536,9 +523,20 @@
       window.addEventListener('resize', syncShell, {passive:true});
       window.addEventListener('orientationchange', syncShell, {passive:true});
       document.addEventListener('visibilitychange', () => { if (!document.hidden) syncShell(); }, {passive:true});
-      const observer = new MutationObserver(syncShell);
-      observer.observe(document.documentElement, {childList:true, subtree:true, attributes:true, attributeFilter:['class','data-theme']});
-      window.__peopleosNativeR13Observer = observer;
+
+      const treeObserver = new MutationObserver(records => {
+        const relevant = records.some(record => {
+          const target = record.target && record.target.nodeType === 1 ? record.target : record.target?.parentElement;
+          return !(target && target.closest && target.closest('#peopleos-native-appbar,#peopleos-native-dock'));
+        });
+        if (relevant) syncShell();
+      });
+      treeObserver.observe(document.documentElement, {childList:true, subtree:true});
+      window.__peopleosNativeR13Observer = treeObserver;
+
+      const themeObserver = new MutationObserver(syncShell);
+      themeObserver.observe(document.documentElement, {attributes:true, attributeFilter:['class','data-theme']});
+      window.__peopleosNativeR13ThemeObserver = themeObserver;
     }
 
     syncShell();
