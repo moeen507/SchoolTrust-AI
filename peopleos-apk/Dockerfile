@@ -21,8 +21,26 @@ RUN gradle --no-daemon clean assembleRelease \
     && mkdir -p /out \
     && cp app/build/outputs/apk/release/app-release.apk /out/PeopleOS-v5.9.2-R11.apk
 
-FROM python:3.12-slim
-WORKDIR /srv
-COPY --from=build /out/PeopleOS-v5.9.2-R11.apk /srv/PeopleOS-v5.9.2-R11.apk
+FROM nginx:1.27-alpine
+COPY --from=build /out/PeopleOS-v5.9.2-R11.apk /usr/share/nginx/html/PeopleOS-v5.9.2-R11.apk
+RUN cat > /etc/nginx/conf.d/default.conf <<'EOF'
+server {
+    listen 8080;
+    server_name _;
+    root /usr/share/nginx/html;
+
+    location = /PeopleOS-v5.9.2-R11.apk {
+        default_type application/vnd.android.package-archive;
+        add_header Content-Disposition 'attachment; filename="PeopleOS-v5.9.2-R11.apk"' always;
+        add_header Cache-Control "no-store, no-cache, must-revalidate" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        try_files $uri =404;
+    }
+
+    location / {
+        return 302 /PeopleOS-v5.9.2-R11.apk;
+    }
+}
+EOF
 EXPOSE 8080
-CMD ["sh", "-c", "python -m http.server ${PORT:-8080} --directory /srv"]
+CMD ["nginx", "-g", "daemon off;"]
