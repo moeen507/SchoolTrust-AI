@@ -21,7 +21,14 @@ RUN wget -q https://services.gradle.org/distributions/gradle-8.9-bin.zip -O /tmp
 
 WORKDIR /app
 COPY peopleos-apk/ .
-RUN chmod 0755 /app/runtime-build.sh \
+
+# Compile the application during the image build without any signing secrets.
+# Runtime only performs the lightweight apksigner step with Railway-held secrets.
+RUN gradle --no-daemon clean assembleRelease \
+    && mkdir -p /opt/peopleos \
+    && cp app/build/outputs/apk/release/app-release-unsigned.apk /opt/peopleos/PeopleOS-v5.9.2-R12-unsigned.apk \
+    && test -s /opt/peopleos/PeopleOS-v5.9.2-R12-unsigned.apk \
+    && chmod 0755 /app/runtime-build.sh \
     && mkdir -p /usr/share/nginx/html \
     && rm -f /etc/nginx/sites-enabled/default \
     && cat > /etc/nginx/conf.d/peopleos.conf <<'EOF'
