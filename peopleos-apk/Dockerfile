@@ -16,7 +16,7 @@ RUN wget -q https://services.gradle.org/distributions/gradle-8.9-bin.zip -O /tmp
     && unzip -q /tmp/gradle.zip -d /opt
 
 WORKDIR /app
-COPY . .
+COPY peopleos-apk/ .
 RUN gradle --no-daemon clean assembleRelease \
     && mkdir -p /out \
     && cp app/build/outputs/apk/release/app-release.apk /out/PeopleOS-v5.9.2-R11.apk
