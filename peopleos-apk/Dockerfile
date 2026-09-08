@@ -25,8 +25,9 @@ COPY peopleos-apk/ .
 RUN node --check app/src/main/assets/native-r15.js \
     && node --check app/src/main/assets/peopleos-fast-r20.js \
     && node --check app/src/main/assets/peopleos-login-r20.js \
-    && node --check app/src/main/assets/peopleos-l10n-r17.js \
+    && node --check app/src/main/assets/peopleos-l10n-r20.js \
     && node --check app/src/main/assets/peopleos-ai-r17.js \
+    && cp app/src/main/assets/peopleos-l10n-r20.js app/src/main/assets/peopleos-l10n-r17.js \
     && gradle --no-daemon clean assembleRelease \
     && mkdir -p /opt/peopleos \
     && cp app/build/outputs/apk/release/app-release-unsigned.apk /opt/peopleos/PeopleOS-v5.9.2-R20-unsigned.apk \
