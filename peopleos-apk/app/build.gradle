@@ -10,8 +10,21 @@ android {
         applicationId 'com.umeed.peopleos'
         minSdk 26
         targetSdk 35
-        versionCode 11
-        versionName '5.9.2-R11'
+        versionCode 12
+        versionName '5.9.2-R12'
+    }
+
+    signingConfigs {
+        release {
+            def ksPath = System.getenv('PEOPLEOS_KEYSTORE_FILE')
+            if (!ksPath) {
+                throw new GradleException('PEOPLEOS_KEYSTORE_FILE is required for release builds.')
+            }
+            storeFile file(ksPath)
+            storePassword System.getenv('PEOPLEOS_KEYSTORE_PASSWORD')
+            keyAlias System.getenv('PEOPLEOS_KEY_ALIAS') ?: 'peopleos'
+            keyPassword System.getenv('PEOPLEOS_KEY_PASSWORD')
+        }
     }
 
     buildTypes {
@@ -20,7 +33,7 @@ android {
             versionNameSuffix '-debug'
         }
         release {
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             minifyEnabled false
             shrinkResources false
         }
