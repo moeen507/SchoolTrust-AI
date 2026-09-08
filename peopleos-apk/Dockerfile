@@ -22,12 +22,11 @@ RUN wget -q https://services.gradle.org/distributions/gradle-8.9-bin.zip -O /tmp
 WORKDIR /app
 COPY peopleos-apk/ .
 
-# Compile the application during the image build without any signing secrets.
-# Runtime only performs the lightweight apksigner step with Railway-held secrets.
+# Compile without signing secrets. Railway signs the prepared APK at runtime.
 RUN gradle --no-daemon clean assembleRelease \
     && mkdir -p /opt/peopleos \
-    && cp app/build/outputs/apk/release/app-release-unsigned.apk /opt/peopleos/PeopleOS-v5.9.2-R12-unsigned.apk \
-    && test -s /opt/peopleos/PeopleOS-v5.9.2-R12-unsigned.apk \
+    && cp app/build/outputs/apk/release/app-release-unsigned.apk /opt/peopleos/PeopleOS-v5.9.2-R13-unsigned.apk \
+    && test -s /opt/peopleos/PeopleOS-v5.9.2-R13-unsigned.apk \
     && chmod 0755 /app/runtime-build.sh \
     && mkdir -p /usr/share/nginx/html \
     && rm -f /etc/nginx/sites-enabled/default \
@@ -37,16 +36,16 @@ server {
     server_name _;
     root /usr/share/nginx/html;
 
-    location = /PeopleOS-v5.9.2-R12.apk {
+    location = /PeopleOS-v5.9.2-R13.apk {
         default_type application/vnd.android.package-archive;
-        add_header Content-Disposition 'attachment; filename="PeopleOS-v5.9.2-R12.apk"' always;
+        add_header Content-Disposition 'attachment; filename="PeopleOS-v5.9.2-R13.apk"' always;
         add_header Cache-Control "no-store, no-cache, must-revalidate" always;
         add_header X-Content-Type-Options "nosniff" always;
         try_files $uri =404;
     }
 
     location / {
-        return 302 /PeopleOS-v5.9.2-R12.apk;
+        return 302 /PeopleOS-v5.9.2-R13.apk;
     }
 }
 EOF
