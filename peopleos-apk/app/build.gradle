@@ -14,16 +14,15 @@ android {
         versionName '5.9.2-R12'
     }
 
-    signingConfigs {
-        release {
-            def ksPath = System.getenv('PEOPLEOS_KEYSTORE_FILE')
-            if (!ksPath) {
-                throw new GradleException('PEOPLEOS_KEYSTORE_FILE is required for release builds.')
+    def ksPath = System.getenv('PEOPLEOS_KEYSTORE_FILE')
+    if (ksPath) {
+        signingConfigs {
+            release {
+                storeFile file(ksPath)
+                storePassword System.getenv('PEOPLEOS_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('PEOPLEOS_KEY_ALIAS') ?: 'peopleos'
+                keyPassword System.getenv('PEOPLEOS_KEY_PASSWORD')
             }
-            storeFile file(ksPath)
-            storePassword System.getenv('PEOPLEOS_KEYSTORE_PASSWORD')
-            keyAlias System.getenv('PEOPLEOS_KEY_ALIAS') ?: 'peopleos'
-            keyPassword System.getenv('PEOPLEOS_KEY_PASSWORD')
         }
     }
 
@@ -33,7 +32,7 @@ android {
             versionNameSuffix '-debug'
         }
         release {
-            signingConfig signingConfigs.release
+            if (ksPath) signingConfig signingConfigs.release
             minifyEnabled false
             shrinkResources false
         }
