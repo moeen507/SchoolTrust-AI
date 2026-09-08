@@ -22,16 +22,15 @@ RUN wget -q https://services.gradle.org/distributions/gradle-8.9-bin.zip -O /tmp
 WORKDIR /app
 COPY peopleos-apk/ .
 
-RUN cat app/src/main/assets/peopleos-login-r19.js >> app/src/main/assets/peopleos-ai-r17.js \
-    && sed -i 's/v=592r17/v=592r19/g' app/src/main/java/com/umeed/peopleos/MainActivity.java \
-    && sed -i 's/PeopleOSAndroid\/5.9.2-R17/PeopleOSAndroid\/5.9.2-R19/g' app/src/main/java/com/umeed/peopleos/MainActivity.java \
+RUN node --check app/src/main/assets/native-r15.js \
+    && node --check app/src/main/assets/peopleos-fast-r20.js \
+    && node --check app/src/main/assets/peopleos-login-r20.js \
     && node --check app/src/main/assets/peopleos-l10n-r17.js \
     && node --check app/src/main/assets/peopleos-ai-r17.js \
-    && node --check app/src/main/assets/peopleos-login-r19.js \
     && gradle --no-daemon clean assembleRelease \
     && mkdir -p /opt/peopleos \
-    && cp app/build/outputs/apk/release/app-release-unsigned.apk /opt/peopleos/PeopleOS-v5.9.2-R19-unsigned.apk \
-    && test -s /opt/peopleos/PeopleOS-v5.9.2-R19-unsigned.apk \
+    && cp app/build/outputs/apk/release/app-release-unsigned.apk /opt/peopleos/PeopleOS-v5.9.2-R20-unsigned.apk \
+    && test -s /opt/peopleos/PeopleOS-v5.9.2-R20-unsigned.apk \
     && chmod 0755 /app/runtime-build.sh \
     && mkdir -p /usr/share/nginx/html \
     && rm -f /etc/nginx/sites-enabled/default \
@@ -41,16 +40,16 @@ server {
     server_name _;
     root /usr/share/nginx/html;
 
-    location = /PeopleOS-v5.9.2-R19.apk {
+    location = /PeopleOS-v5.9.2-R20.apk {
         default_type application/vnd.android.package-archive;
-        add_header Content-Disposition 'attachment; filename="PeopleOS-v5.9.2-R19.apk"' always;
+        add_header Content-Disposition 'attachment; filename="PeopleOS-v5.9.2-R20.apk"' always;
         add_header Cache-Control "no-store, no-cache, must-revalidate" always;
         add_header X-Content-Type-Options "nosniff" always;
         try_files $uri =404;
     }
 
     location / {
-        return 302 /PeopleOS-v5.9.2-R19.apk;
+        return 302 /PeopleOS-v5.9.2-R20.apk;
     }
 }
 EOF
