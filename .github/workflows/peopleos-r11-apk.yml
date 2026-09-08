@@ -1,0 +1,63 @@
+name: Build PeopleOS R11 APK
+
+on:
+  push:
+    branches: [ peopleos-apk-build-r11 ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: peopleos-apk
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 35
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build installable APK
+        run: gradle --no-daemon clean assembleRelease
+
+      - name: Collect APK and signing key
+        run: |
+          mkdir -p artifact
+          cp app/build/outputs/apk/release/app-release.apk artifact/PeopleOS-v5.9.2-R11.apk
+          cp "$HOME/.android/debug.keystore" artifact/PeopleOS-R11-signing.keystore
+          printf '%s\n' \
+            'Signing key: PeopleOS-R11-signing.keystore' \
+            'Alias: androiddebugkey' \
+            'Store password: android' \
+            'Key password: android' \
+            '' \
+            'Keep this keystore. Future APK updates must use this same signing key.' \
+            > artifact/PeopleOS-R11-signing-info.txt
+          ls -lh artifact/
+
+      - name: Upload install package
+        uses: actions/upload-artifact@v4
+        with:
+          name: PeopleOS-v5.9.2-R11-Install-Package
+          path: peopleos-apk/artifact/*
+          if-no-files-found: error
+          retention-days: 30
