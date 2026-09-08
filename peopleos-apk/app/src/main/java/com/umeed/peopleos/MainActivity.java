@@ -11,6 +11,7 @@ import android.provider.MediaStore;
 import android.view.MotionEvent;
 import android.view.View;
 import android.webkit.GeolocationPermissions;
+import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -24,11 +25,14 @@ import android.widget.Toast;
 
 import androidx.core.content.FileProvider;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends Activity {
-    private static final String APP_URL = "https://hrm.umeedschool.com/?native=android&v=592r12";
+    private static final String APP_URL = "https://hrm.umeedschool.com/?native=android&v=592r13";
     private static final String TRUSTED_ORIGIN = "https://hrm.umeedschool.com";
     private static final int REQ_CAMERA = 4101;
     private static final int REQ_LOCATION = 4102;
@@ -42,251 +46,20 @@ public class MainActivity extends Activity {
     private String pendingGeoOrigin;
     private ValueCallback<Uri[]> pendingFileCallback;
     private Uri pendingCameraUri;
-
-    private static final String NATIVE_ENHANCEMENT_SCRIPT = """
-        (() => {
-          try {
-            const d = document.documentElement;
-            const b = document.body;
-            d.dataset.nativeApp = 'android';
-            d.dataset.nativeUi = 'r12';
-            if (b) b.classList.add('peopleos-native-android','peopleos-native-r12');
-
-            let style = document.getElementById('peopleos-native-r12-style');
-            if (!style) {
-              style = document.createElement('style');
-              style.id = 'peopleos-native-r12-style';
-              style.textContent = `
-                html[data-native-app='android'],
-                html[data-native-app='android'] body,
-                html[data-native-app='android'] #root{
-                  width:100%!important;
-                  max-width:100%!important;
-                  min-height:100%!important;
-                  height:auto!important;
-                  overflow-y:auto!important;
-                  overflow-x:hidden!important;
-                  overscroll-behavior-y:auto!important;
-                  -webkit-overflow-scrolling:touch!important;
-                }
-                html[data-native-app='android'] body{
-                  position:static!important;
-                  touch-action:pan-y pinch-zoom!important;
-                  -webkit-tap-highlight-color:transparent;
-                  text-rendering:optimizeLegibility;
-                }
-                html[data-native-app='android'] main,
-                html[data-native-app='android'] main > *{
-                  height:auto!important;
-                  min-height:0!important;
-                  max-height:none!important;
-                  overflow:visible!important;
-                  touch-action:pan-y pinch-zoom!important;
-                }
-                html[data-native-app='android'] main .page-container{
-                  width:100%!important;
-                  max-width:100%!important;
-                  height:auto!important;
-                  min-height:calc(100dvh - 74px)!important;
-                  max-height:none!important;
-                  overflow:visible!important;
-                  padding-left:14px!important;
-                  padding-right:14px!important;
-                  padding-top:16px!important;
-                  padding-bottom:max(136px,calc(env(safe-area-inset-bottom) + 118px))!important;
-                  box-sizing:border-box!important;
-                }
-                html[data-native-app='android'] .employee-dashboard-v585,
-                html[data-native-app='android'] .home-dashboard-v584,
-                html[data-native-app='android'] .attendance-premium-page,
-                html[data-native-app='android'] .mobile-attendance-page{
-                  height:auto!important;
-                  max-height:none!important;
-                  overflow:visible!important;
-                  touch-action:pan-y!important;
-                }
-                html[data-native-app='android'] .overflow-y-auto,
-                html[data-native-app='android'] .emp-modal-body,
-                html[data-native-app='android'] .cr-face-list,
-                html[data-native-app='android'] .mobile-camera-dialog,
-                html[data-native-app='android'] .loan-dialog{
-                  overflow-y:auto!important;
-                  -webkit-overflow-scrolling:touch!important;
-                  overscroll-behavior:contain!important;
-                  touch-action:pan-y!important;
-                }
-                html[data-native-app='android'] .overflow-x-auto,
-                html[data-native-app='android'] .premium-month-scroll,
-                html[data-native-app='android'] .home-trend-summary-v584,
-                html[data-native-app='android'] .home-bars-scroll-v584,
-                html[data-native-app='android'] .emp-desktop-table,
-                html[data-native-app='android'] .cr-audit-table-wrap,
-                html[data-native-app='android'] .mobile-audit-table,
-                html[data-native-app='android'] .loan-table{
-                  overflow-x:auto!important;
-                  -webkit-overflow-scrolling:touch!important;
-                  overscroll-behavior-x:contain!important;
-                  touch-action:pan-x pan-y!important;
-                }
-
-                html[data-native-ui='r12']{
-                  --native-radius-xl:24px;
-                  --native-radius-lg:20px;
-                  --native-shadow:0 12px 34px rgba(42,23,30,.085);
-                  --native-shadow-strong:0 18px 46px rgba(57,19,34,.13);
-                }
-                html[data-native-ui='r12'] body{
-                  background:
-                    radial-gradient(circle at 92% 2%,hsl(var(--accent)/.075),transparent 24rem),
-                    radial-gradient(circle at 4% 14%,hsl(var(--primary)/.055),transparent 22rem),
-                    hsl(var(--background))!important;
-                }
-                html[data-native-ui='r12'] header.sticky{
-                  min-height:64px!important;
-                  border-bottom:1px solid color-mix(in srgb,hsl(var(--border)) 72%,transparent)!important;
-                  background:color-mix(in srgb,hsl(var(--background)) 94%,transparent)!important;
-                  box-shadow:0 6px 22px rgba(44,20,29,.055)!important;
-                  -webkit-backdrop-filter:saturate(1.15) blur(18px)!important;
-                  backdrop-filter:saturate(1.15) blur(18px)!important;
-                }
-                html[data-native-ui='r12'] main .page-container > .rounded-xl,
-                html[data-native-ui='r12'] main .page-container .rounded-xl.border.bg-card,
-                html[data-native-ui='r12'] .attendance-mobile-card,
-                html[data-native-ui='r12'] .employee-secondary-card-v585,
-                html[data-native-ui='r12'] .employee-summary-card-v585,
-                html[data-native-ui='r12'] .employee-today-card-v585,
-                html[data-native-ui='r12'] .employee-mobile-moments-card-v585,
-                html[data-native-ui='r12'] .home-kpi-card-v584,
-                html[data-native-ui='r12'] .home-weekly-card-v584{
-                  border-radius:var(--native-radius-lg)!important;
-                  border-color:color-mix(in srgb,hsl(var(--border)) 84%,hsl(var(--accent)) 16%)!important;
-                  box-shadow:var(--native-shadow)!important;
-                }
-                html[data-native-ui='r12'] .employee-mobile-hero-v585,
-                html[data-native-ui='r12'] .mobile-attendance-hero,
-                html[data-native-ui='r12'] .cr-attendance-hero{
-                  border-radius:var(--native-radius-xl)!important;
-                  box-shadow:var(--native-shadow-strong)!important;
-                }
-                html[data-native-ui='r12'] .mobile-attendance-hero{
-                  background:
-                    radial-gradient(circle at 88% 18%,rgba(233,196,102,.20),transparent 34%),
-                    linear-gradient(140deg,#7f1839 0%,#5e102b 54%,#34101f 100%)!important;
-                  border-color:rgba(230,196,111,.30)!important;
-                }
-                html[data-native-ui='r12'] .peopleos-mobile-dock{
-                  left:10px!important;
-                  right:10px!important;
-                  bottom:max(8px,env(safe-area-inset-bottom))!important;
-                  min-height:70px!important;
-                  padding:6px!important;
-                  gap:4px!important;
-                  border-radius:24px!important;
-                  border:1px solid rgba(218,183,98,.24)!important;
-                  background:
-                    radial-gradient(circle at 50% -40%,rgba(229,196,110,.16),transparent 48%),
-                    linear-gradient(155deg,rgba(54,27,35,.985),rgba(23,15,19,.995))!important;
-                  box-shadow:0 18px 44px rgba(44,18,29,.28),inset 0 1px 0 rgba(255,255,255,.07)!important;
-                  overflow-x:auto!important;
-                  overflow-y:hidden!important;
-                  touch-action:pan-x!important;
-                  scrollbar-width:none!important;
-                }
-                html[data-native-ui='r12'] .peopleos-mobile-dock::-webkit-scrollbar{display:none!important}
-                html[data-native-ui='r12'] .peopleos-dock-link{
-                  min-width:58px!important;
-                  min-height:56px!important;
-                  border-radius:17px!important;
-                  padding:5px 3px!important;
-                  gap:3px!important;
-                }
-                html[data-native-ui='r12'] .peopleos-dock-icon{
-                  width:29px!important;
-                  height:27px!important;
-                }
-                html[data-native-ui='r12'] .peopleos-dock-label{
-                  font-size:9.7px!important;
-                  line-height:1.05!important;
-                  font-weight:760!important;
-                }
-                html[data-native-ui='r12'] .peopleos-dock-link.is-active{
-                  background:linear-gradient(155deg,#a51c46,#771334)!important;
-                  border-color:rgba(232,198,112,.30)!important;
-                  box-shadow:0 9px 24px rgba(105,13,43,.35),inset 0 1px 0 rgba(255,231,166,.15)!important;
-                }
-                html[data-native-ui='r12'] input,
-                html[data-native-ui='r12'] select,
-                html[data-native-ui='r12'] textarea{
-                  font-size:16px!important;
-                }
-                html[data-native-ui='r12'] .emp-btn,
-                html[data-native-ui='r12'] .mobile-attendance-hero-actions button,
-                html[data-native-ui='r12'] .mobile-att-actions button{
-                  min-height:48px!important;
-                  border-radius:14px!important;
-                }
-                html[data-native-ui='r12'] h1{letter-spacing:-.035em}
-                html[data-native-ui='r12'] .attendance-mobile-card{margin-bottom:12px!important}
-                html[data-native-ui='r12'] .instant-install{display:none!important}
-                @media(max-width:760px){
-                  html[data-native-ui='r12'] main .page-container{
-                    padding-left:12px!important;
-                    padding-right:12px!important;
-                  }
-                  html[data-native-ui='r12'] .home-kpi-grid-v584{gap:10px!important}
-                  html[data-native-ui='r12'] .home-kpi-card-v584{
-                    min-height:122px!important;
-                    padding:14px!important;
-                  }
-                  html[data-native-ui='r12'] .home-kpi-value-v584{font-size:1.9rem!important}
-                }
-              `;
-              (document.head || d).appendChild(style);
-            }
-
-            const unlockScroll = () => {
-              d.style.setProperty('overflow-y','auto','important');
-              d.style.setProperty('overflow-x','hidden','important');
-              d.style.setProperty('height','auto','important');
-              if (document.body) {
-                document.body.style.setProperty('overflow-y','auto','important');
-                document.body.style.setProperty('overflow-x','hidden','important');
-                document.body.style.setProperty('height','auto','important');
-                document.body.style.webkitOverflowScrolling = 'touch';
-              }
-            };
-            unlockScroll();
-
-            if (!window.__peopleosNativeR12Observer) {
-              window.__peopleosNativeR12Observer = new MutationObserver(() => {
-                if (document.body && !document.body.classList.contains('peopleos-native-r12')) {
-                  document.body.classList.add('peopleos-native-android','peopleos-native-r12');
-                }
-                const main = document.querySelector('main');
-                if (main) main.style.setProperty('overflow','visible','important');
-              });
-              window.__peopleosNativeR12Observer.observe(document.documentElement,{childList:true,subtree:true});
-              window.addEventListener('popstate',()=>setTimeout(unlockScroll,0),{passive:true});
-              window.addEventListener('hashchange',()=>setTimeout(unlockScroll,0),{passive:true});
-              document.addEventListener('visibilitychange',()=>{ if(!document.hidden) setTimeout(unlockScroll,0); },{passive:true});
-            }
-          } catch (e) {}
-        })();
-        """;
+    private String nativeEnhancementScript = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getWindow().setStatusBarColor(Color.rgb(112, 21, 47));
-        getWindow().setNavigationBarColor(Color.rgb(245, 239, 228));
+        applySystemTheme("ivory");
 
         FrameLayout root = new FrameLayout(this);
-        root.setBackgroundColor(Color.rgb(245, 239, 228));
+        root.setBackgroundColor(Color.rgb(247, 243, 236));
 
         webView = new WebView(this);
-        webView.setBackgroundColor(Color.rgb(245, 239, 228));
+        webView.setBackgroundColor(Color.rgb(247, 243, 236));
         webView.setVerticalScrollBarEnabled(true);
-        webView.setHorizontalScrollBarEnabled(true);
+        webView.setHorizontalScrollBarEnabled(false);
         webView.setScrollbarFadingEnabled(true);
         webView.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
         webView.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
@@ -305,12 +78,31 @@ public class MainActivity extends Activity {
         progressBar.setMax(100);
 
         root.addView(webView, new FrameLayout.LayoutParams(-1, -1));
-        root.addView(progressBar, new FrameLayout.LayoutParams(-1, 5));
+        root.addView(progressBar, new FrameLayout.LayoutParams(-1, 4));
         setContentView(root);
 
+        nativeEnhancementScript = loadAssetText("native-r13.js");
         configureWebView();
-        if (savedInstanceState == null) webView.loadUrl(APP_URL);
-        else webView.restoreState(savedInstanceState);
+
+        if (savedInstanceState == null) {
+            webView.loadUrl(APP_URL);
+        } else {
+            webView.restoreState(savedInstanceState);
+        }
+    }
+
+    private String loadAssetText(String name) {
+        StringBuilder out = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                getAssets().open(name), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                out.append(line).append('\n');
+            }
+        } catch (IOException e) {
+            Toast.makeText(this, "Mobile interface assets could not be loaded.", Toast.LENGTH_SHORT).show();
+        }
+        return out.toString();
     }
 
     private boolean isTrusted(String value) {
@@ -333,7 +125,9 @@ public class MainActivity extends Activity {
         s.setTextZoom(100);
         s.setUseWideViewPort(true);
         s.setLoadWithOverviewMode(false);
-        s.setUserAgentString(s.getUserAgentString() + " PeopleOSAndroid/5.9.2-R12");
+        s.setUserAgentString(s.getUserAgentString() + " PeopleOSAndroid/5.9.2-R13");
+
+        webView.addJavascriptInterface(new NativeUiBridge(), "PeopleOSNative");
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
@@ -361,7 +155,7 @@ public class MainActivity extends Activity {
             public void onProgressChanged(WebView view, int newProgress) {
                 progressBar.setProgress(newProgress);
                 progressBar.setVisibility(newProgress >= 100 ? View.GONE : View.VISIBLE);
-                if (newProgress >= 70) applyNativeEnhancements(view);
+                if (newProgress >= 55) applyNativeEnhancements(view);
             }
 
             @Override
@@ -373,8 +167,8 @@ public class MainActivity extends Activity {
                         return;
                     }
                     boolean asksCamera = false;
-                    for (String r : request.getResources()) {
-                        if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(r)) asksCamera = true;
+                    for (String resource : request.getResources()) {
+                        if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)) asksCamera = true;
                     }
                     if (!asksCamera) {
                         request.deny();
@@ -422,8 +216,30 @@ public class MainActivity extends Activity {
     }
 
     private void applyNativeEnhancements(WebView view) {
-        if (view == null) return;
-        view.evaluateJavascript(NATIVE_ENHANCEMENT_SCRIPT, null);
+        if (view == null || nativeEnhancementScript == null || nativeEnhancementScript.isEmpty()) return;
+        view.evaluateJavascript(nativeEnhancementScript, null);
+    }
+
+    private class NativeUiBridge {
+        @JavascriptInterface
+        public void setSystemTheme(String mode) {
+            runOnUiThread(() -> applySystemTheme(mode));
+        }
+    }
+
+    private void applySystemTheme(String mode) {
+        boolean dark = "dark".equalsIgnoreCase(mode);
+        boolean light = "light".equalsIgnoreCase(mode);
+
+        if (dark) {
+            getWindow().setStatusBarColor(Color.rgb(27, 20, 23));
+            getWindow().setNavigationBarColor(Color.rgb(20, 16, 18));
+            getWindow().getDecorView().setSystemUiVisibility(0);
+        } else {
+            getWindow().setStatusBarColor(Color.rgb(112, 21, 47));
+            getWindow().setNavigationBarColor(light ? Color.rgb(250, 250, 250) : Color.rgb(247, 243, 236));
+            getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+        }
     }
 
     private void launchCamera() {
@@ -461,8 +277,9 @@ public class MainActivity extends Activity {
                 pendingGeoOrigin = null;
             }
         } else if (requestCode == REQ_FILE_CAMERA) {
-            if (granted) launchCamera();
-            else if (pendingFileCallback != null) {
+            if (granted) {
+                launchCamera();
+            } else if (pendingFileCallback != null) {
                 pendingFileCallback.onReceiveValue(null);
                 pendingFileCallback = null;
             }
@@ -507,6 +324,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         if (webView != null) {
+            webView.removeJavascriptInterface("PeopleOSNative");
             webView.loadUrl("about:blank");
             webView.stopLoading();
             webView.destroy();
