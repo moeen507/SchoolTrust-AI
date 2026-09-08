@@ -55,8 +55,13 @@ public class MainActivity extends Activity {
     private String pendingGeoOrigin;
     private ValueCallback<Uri[]> pendingFileCallback;
     private Uri pendingCameraUri;
-    private String nativeEnhancementScript = "";
-    private boolean nativeInjectedForPage = false;
+
+    private String coreScript = "";
+    private String localeScript = "";
+    private String aiScript = "";
+    private boolean coreInjectedForPage = false;
+    private boolean localeInjectedForPage = false;
+    private boolean aiInjectedForPage = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,6 +85,7 @@ public class MainActivity extends Activity {
         webView.setFocusableInTouchMode(true);
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         webView.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, true);
+        webView.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
 
         progressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
         progressBar.setMax(100);
@@ -90,11 +96,13 @@ public class MainActivity extends Activity {
         root.addView(splashOverlay, new FrameLayout.LayoutParams(-1, -1));
         setContentView(root);
 
-        nativeEnhancementScript = loadAssetText("native-r15.js") + "\n"
-                + loadAssetText("peopleos-l10n-r17.js") + "\n"
-                + loadAssetText("peopleos-ai-r17.js");
-        configureWebView();
+        coreScript = loadAssetText("native-r15.js") + "\n"
+                + loadAssetText("peopleos-fast-r20.js") + "\n"
+                + loadAssetText("peopleos-login-r20.js");
+        localeScript = loadAssetText("peopleos-l10n-r17.js");
+        aiScript = loadAssetText("peopleos-ai-r17.js");
 
+        configureWebView();
         if (savedInstanceState == null) webView.loadUrl(buildStartUrl());
         else webView.restoreState(savedInstanceState);
     }
@@ -156,16 +164,17 @@ public class MainActivity extends Activity {
         if (firstContentReady) return;
         firstContentReady = true;
         if (splashOverlay == null || splashOverlay.getVisibility() != View.VISIBLE) return;
-        splashOverlay.animate().alpha(0f).setDuration(180).withEndAction(() -> {
+        splashOverlay.animate().alpha(0f).setDuration(120).withEndAction(() -> {
             splashOverlay.setVisibility(View.GONE);
             splashOverlay.setAlpha(1f);
         }).start();
     }
 
     private String buildStartUrl() {
-        String route = getPreferences(MODE_PRIVATE).getString("peopleos_last_route", "/");
+        boolean hadSession = getPreferences(MODE_PRIVATE).getBoolean("peopleos_had_session", false);
+        String route = hadSession ? getPreferences(MODE_PRIVATE).getString("peopleos_last_route", "/") : "/";
         if (route == null || !route.startsWith("/") || isAuthRoute(route)) route = "/";
-        return APP_ORIGIN + route + (route.contains("?") ? "&" : "?") + "native=android&v=592r17";
+        return APP_ORIGIN + route + (route.contains("?") ? "&" : "?") + "native=android&v=592r20";
     }
 
     private boolean isAuthRoute(String route) {
@@ -216,7 +225,8 @@ public class MainActivity extends Activity {
         s.setJavaScriptCanOpenWindowsAutomatically(false);
         s.setSupportMultipleWindows(false);
         s.setOffscreenPreRaster(true);
-        s.setUserAgentString(s.getUserAgentString() + " PeopleOSAndroid/5.9.2-R17");
+        s.setSaveFormData(false);
+        s.setUserAgentString(s.getUserAgentString() + " PeopleOSAndroid/5.9.2-R20");
 
         CookieManager cookies = CookieManager.getInstance();
         cookies.setAcceptCookie(true);
@@ -234,19 +244,21 @@ public class MainActivity extends Activity {
 
             @Override public void onPageStarted(WebView view, String url, Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
-                nativeInjectedForPage = false;
+                coreInjectedForPage = false;
+                localeInjectedForPage = false;
+                aiInjectedForPage = false;
                 progressBar.setVisibility(View.VISIBLE);
                 if (!firstContentReady && splashOverlay != null) splashOverlay.setVisibility(View.VISIBLE);
             }
 
             @Override public void onPageCommitVisible(WebView view, String url) {
                 super.onPageCommitVisible(view, url);
-                injectNativeOnce(view);
+                injectCoreOnce(view);
             }
 
             @Override public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                injectNativeOnce(view);
+                injectCoreOnce(view);
                 CookieManager.getInstance().flush();
             }
         });
@@ -255,7 +267,7 @@ public class MainActivity extends Activity {
             @Override public void onProgressChanged(WebView view, int newProgress) {
                 progressBar.setProgress(newProgress);
                 progressBar.setVisibility(newProgress >= 100 ? View.GONE : View.VISIBLE);
-                if (newProgress >= 30) injectNativeOnce(view);
+                if (newProgress >= 75 && !coreInjectedForPage) injectCoreOnce(view);
             }
 
             @Override public void onPermissionRequest(PermissionRequest request) {
@@ -292,15 +304,33 @@ public class MainActivity extends Activity {
         });
     }
 
-    private void injectNativeOnce(WebView view) {
-        if (nativeInjectedForPage || view == null || nativeEnhancementScript == null || nativeEnhancementScript.isEmpty()) return;
-        nativeInjectedForPage = true;
-        view.evaluateJavascript(nativeEnhancementScript, null);
+    private void injectCoreOnce(WebView view) {
+        if (coreInjectedForPage || view == null || coreScript == null || coreScript.isEmpty()) return;
+        coreInjectedForPage = true;
+        view.evaluateJavascript(coreScript, null);
+    }
+
+    private void injectLocale(WebView view) {
+        if (localeInjectedForPage || view == null || localeScript == null || localeScript.isEmpty()) return;
+        localeInjectedForPage = true;
+        view.evaluateJavascript(localeScript, null);
+    }
+
+    private void injectAi(WebView view) {
+        if (aiInjectedForPage || view == null || aiScript == null || aiScript.isEmpty()) return;
+        aiInjectedForPage = true;
+        view.evaluateJavascript(aiScript, null);
+    }
+
+    private void injectDeferredFeatures() {
+        if (webView == null) return;
+        webView.postDelayed(() -> injectLocale(webView), 160);
+        webView.postDelayed(() -> injectAi(webView), 650);
     }
 
     private void syncNativeShell(WebView view) {
         if (view == null) return;
-        view.evaluateJavascript("window.__peopleosR15Sync&&window.__peopleosR15Sync();window.__peopleosR17LocaleSync&&window.__peopleosR17LocaleSync();window.__peopleosAiR17Sync&&window.__peopleosAiR17Sync();", null);
+        view.evaluateJavascript("window.__peopleosR15Sync&&window.__peopleosR15Sync();window.__peopleosFastR20Sync&&window.__peopleosFastR20Sync();window.__peopleosR20LoginSync&&window.__peopleosR20LoginSync();window.__peopleosR17LocaleSync&&window.__peopleosR17LocaleSync();window.__peopleosR18Sync&&window.__peopleosR18Sync();", null);
     }
 
     private class NativeUiBridge {
@@ -316,7 +346,16 @@ public class MainActivity extends Activity {
             runOnUiThread(() -> applySplashLanguage(safe));
         }
         @JavascriptInterface public String getSavedLanguage() { return getPreferences(MODE_PRIVATE).getString("peopleos_language", "en"); }
-        @JavascriptInterface public void setContentReady(boolean authenticated) { runOnUiThread(MainActivity.this::hideSplash); }
+        @JavascriptInterface public void setContentReady(boolean authenticated) {
+            getPreferences(MODE_PRIVATE).edit().putBoolean("peopleos_had_session", authenticated).apply();
+            runOnUiThread(() -> {
+                hideSplash();
+                if (authenticated) injectDeferredFeatures();
+            });
+        }
+        @JavascriptInterface public void authConfirmed() {
+            getPreferences(MODE_PRIVATE).edit().putBoolean("peopleos_had_session", true).apply();
+        }
         @JavascriptInterface public void rememberRoute(String route) {
             if (route == null || !route.startsWith("/") || isAuthRoute(route)) return;
             getPreferences(MODE_PRIVATE).edit().putString("peopleos_last_route", route).apply();
@@ -394,7 +433,7 @@ public class MainActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
-        if (webView != null) { webView.onResume(); syncNativeShell(webView); }
+        if (webView != null) { webView.onResume(); if (firstContentReady) syncNativeShell(webView); }
     }
 
     @Override protected void onPause() {
@@ -416,8 +455,8 @@ public class MainActivity extends Activity {
     @Override protected void onDestroy() {
         if (webView != null) {
             webView.removeJavascriptInterface("PeopleOSNative");
-            webView.loadUrl("about:blank");
             webView.stopLoading();
+            webView.loadUrl("about:blank");
             webView.destroy();
         }
         super.onDestroy();
