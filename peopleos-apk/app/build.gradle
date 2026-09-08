@@ -10,8 +10,8 @@ android {
         applicationId 'com.umeed.peopleos'
         minSdk 26
         targetSdk 35
-        versionCode 16
-        versionName '5.9.2-R16'
+        versionCode 17
+        versionName '5.9.2-R17'
     }
 
     def ksPath = System.getenv('PEOPLEOS_KEYSTORE_FILE')
