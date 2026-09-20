@@ -1,14 +1,16 @@
-FROM node:22-bookworm
+FROM eclipse-temurin:21-jdk-jammy
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV ANDROID_HOME=/opt/android-sdk
 ENV ANDROID_SDK_ROOT=/opt/android-sdk
-ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+ENV JAVA_HOME=/opt/java/openjdk
 ENV PATH=/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:$PATH
 ENV CSC_IDENTITY_AUTO_DISCOVERY=false
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates curl unzip xz-utils python3 openjdk-21-jdk-headless wine wine64 \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl unzip xz-utils python3 wine wine64 gnupg \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /opt/android-sdk/cmdline-tools /tmp/android-tools \
@@ -25,6 +27,7 @@ COPY build-input/UMEED-Central-Student-Management-v0.5.2.zip /work/source.zip
 RUN unzip -q /work/source.zip -d /work/source
 
 WORKDIR /work/source/UMEED-Central-SMS-v0.5.0
+RUN node --version && java -version
 RUN npm install --no-audit --no-fund
 RUN npm run qa:package
 RUN npm run build
