@@ -21,7 +21,7 @@ RUN mkdir -p /opt/android-sdk/cmdline-tools /tmp/android-tools \
 RUN sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
 WORKDIR /work
-COPY build-input/UMEED-Central-Student-Management-v0.5.1.zip /work/source.zip
+COPY build-input/UMEED-Central-Student-Management-v0.5.2.zip /work/source.zip
 RUN unzip -q /work/source.zip -d /work/source
 
 WORKDIR /work/source/UMEED-Central-SMS-v0.5.0
@@ -36,13 +36,13 @@ RUN npx cap add android \
     && ./gradlew assembleDebug --no-daemon --stacktrace
 
 RUN mkdir -p /artifacts \
-    && cp android/app/build/outputs/apk/debug/app-debug.apk /artifacts/UMEED-Student-Management-v0.5.1-Android.apk \
-    && sha256sum /artifacts/UMEED-Student-Management-v0.5.1-Android.apk > /artifacts/UMEED-Student-Management-v0.5.1-Android.sha256.txt
+    && cp android/app/build/outputs/apk/debug/app-debug.apk /artifacts/UMEED-Student-Management-v0.5.2-Android.apk \
+    && sha256sum /artifacts/UMEED-Student-Management-v0.5.2-Android.apk > /artifacts/UMEED-Student-Management-v0.5.2-Android.sha256.txt
 
 RUN npx electron-builder --win --x64 --publish never \
     && cp release/*.exe /artifacts/ \
     && cd /artifacts \
-    && sha256sum *.exe > UMEED-Windows-v0.5.1.sha256.txt
+    && sha256sum *.exe > UMEED-Windows-v0.5.2.sha256.txt
 
 EXPOSE 8080
 CMD ["sh","-c","python3 -m http.server ${PORT:-8080} --directory /artifacts --bind 0.0.0.0"]
