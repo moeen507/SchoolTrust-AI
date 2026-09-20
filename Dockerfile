@@ -3,12 +3,12 @@ FROM node:22-bookworm
 ENV DEBIAN_FRONTEND=noninteractive
 ENV ANDROID_HOME=/opt/android-sdk
 ENV ANDROID_SDK_ROOT=/opt/android-sdk
-ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 ENV PATH=/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:$PATH
 ENV CSC_IDENTITY_AUTO_DISCOVERY=false
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates curl unzip xz-utils python3 openjdk-17-jdk-headless wine wine64 \
+    ca-certificates curl unzip xz-utils python3 openjdk-21-jdk-headless wine wine64 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /opt/android-sdk/cmdline-tools /tmp/android-tools \
