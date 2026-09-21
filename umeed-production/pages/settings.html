@@ -1,0 +1,18 @@
+<section data-page="settings">
+<div class="page-header"><div><h1 class="page-title">System <span>Settings</span></h1><p class="page-subtitle">School identity, fixed fee policy, receipt numbering and centralized backend.</p></div></div>
+<div class="card">
+<form id="settings-form"><div class="form-grid">
+  <div class="form-group span-2"><label>School Name</label><input id="settings-school-name" required></div>
+  <div class="form-group"><label>School Phone</label><input id="settings-school-phone"></div>
+  <div class="form-group span-3"><label>School Address</label><input id="settings-school-address"></div>
+  <div class="form-group"><label>Monthly Fee</label><input id="settings-monthly-fee" type="number" value="2000" readonly></div>
+  <div class="form-group"><label>Annual Fund</label><input id="settings-annual-fund" type="number" value="2150" readonly></div>
+  <div class="form-group"><label>Slip Prefix</label><input id="settings-slip-prefix"></div>
+  <div class="form-group"><label>Current Slip Number</label><input id="settings-slip-number" type="number" readonly></div>
+  <div class="form-group"><label>Prepared By / Cashier</label><input id="settings-prepared-by"></div>
+  <div class="form-group"><label>Print Paper</label><select id="settings-paper"><option>A5 Portrait</option></select></div>
+  <div class="form-group span-3"><label>Supabase Project URL</label><input id="settings-supabase-url" readonly></div>
+  <div class="form-group span-3"><label>Supabase Publishable Key</label><input id="settings-supabase-key" type="password" readonly></div>
+</div><div class="actions" style="margin-top:16px"><button type="submit" class="btn btn-gold">Save Settings</button><button type="button" id="settings-test-backend" class="btn btn-ghost">Test Backend</button><button type="button" id="settings-sign-out" class="btn btn-red">Sign Out</button></div></form>
+</div>
+</section>

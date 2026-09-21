@@ -1,0 +1,66 @@
+import {AppContext} from '../app-context.js';
+import {StudentService} from '../student-service.js';
+import {ActivityService} from '../activity-service.js';
+import {PopupService} from '../popup-service.js';
+import {ExportService} from '../export-service.js';
+import {escapeHtml,className,optionList} from '../dom-utils.js';
+import {debounce} from '../validation-service.js';
+import {CONFIG} from '../config.js';
+
+let page=1;
+function activeRows(){return StudentService.filter(AppContext.state,{query:document.getElementById('student-search')?.value||'',classId:document.getElementById('student-class-filter')?.value||'',status:document.getElementById('student-status-filter')?.value??'active'})}
+function renderStats(){
+  const s=AppContext.state.students.filter(x=>String(x.status||'active')!=='deleted');
+  document.getElementById('student-stats').innerHTML=[
+    ['Total Students',s.length],['Active',s.length],['Classes',new Set(s.map(x=>x.class_id)).size],['Missing Phone',s.filter(x=>!x.phone_number).length]
+  ].map(x=>'<div class="stat-card"><div class="stat-label">'+x[0]+'</div><div class="stat-value">'+x[1]+'</div></div>').join('');
+}
+function renderFilters(){
+  const sel=document.getElementById('student-class-filter');sel.innerHTML='<option value="">All Classes</option>'+optionList(AppContext.state.classes,sel.value,'id',c=>c.class_name);
+}
+function renderTable(){
+  const rows=activeRows(),pages=Math.max(1,Math.ceil(rows.length/CONFIG.pageSize));page=Math.min(page,pages);const start=(page-1)*CONFIG.pageSize,view=rows.slice(start,start+CONFIG.pageSize);
+  document.getElementById('student-table').innerHTML='<div class="table-outer"><table><thead><tr><th>Roll</th><th>Student</th><th>Father</th><th>Class</th><th>Phone</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+(view.length?view.map(s=>'<tr><td><b>'+escapeHtml(s.roll_number)+'</b></td><td>'+escapeHtml(s.student_name)+'</td><td>'+escapeHtml(s.father_name)+'</td><td>'+escapeHtml(className(AppContext.state,s.class_id))+'</td><td>'+escapeHtml(s.phone_number||'-')+'</td><td><span class="badge '+(String(s.status)==='deleted'?'red':'green')+'">'+escapeHtml(s.status||'active')+'</span></td><td><div class="actions"><button class="btn btn-ghost" data-edit="'+s.id+'">Edit</button><button class="btn btn-ghost" data-ledger="'+s.id+'">Ledger</button><button class="btn btn-gold" data-fee="'+s.id+'">Fee</button><button class="btn btn-red" data-delete="'+s.id+'">Delete</button></div></td></tr>').join(''):'<tr><td colspan="7"><div class="empty-state">No students found.</div></td></tr>')+'</tbody></table></div>';
+  document.getElementById('student-pagination').innerHTML='<span style="margin-right:auto;color:#9a8e7e;font-size:11px">'+rows.length+' student(s)</span><button id="pg-prev">Previous</button><span>Page '+page+' / '+pages+'</span><button id="pg-next">Next</button>';
+  document.getElementById('pg-prev').disabled=page<=1;document.getElementById('pg-next').disabled=page>=pages;document.getElementById('pg-prev').onclick=()=>{page--;renderTable()};document.getElementById('pg-next').onclick=()=>{page++;renderTable()};
+  document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openStudent(b.dataset.edit));
+  document.querySelectorAll('[data-ledger]').forEach(b=>b.onclick=()=>{sessionStorage.setItem('umeed:student',b.dataset.ledger);AppContext.navigate('ledger')});
+  document.querySelectorAll('[data-fee]').forEach(b=>b.onclick=()=>{sessionStorage.setItem('umeed:student',b.dataset.fee);AppContext.navigate('fee-entry')});
+  document.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>removeStudent(b.dataset.delete));
+}
+function popupForm(student=null){
+  const root=document.getElementById('popup-root'),back=document.createElement('div');back.className='popup-backdrop';const box=document.createElement('div');box.className='popup';
+  box.innerHTML='<h3>'+(student?'Edit Student':'Add Student')+'</h3><form id="student-modal-form"><div class="form-grid"><div class="form-group"><label>Roll Number</label><input id="m-roll" required value="'+escapeHtml(student?.roll_number||'')+'"></div><div class="form-group"><label>Student Name</label><input id="m-name" required value="'+escapeHtml(student?.student_name||'')+'"></div><div class="form-group"><label>Father Name</label><input id="m-father" required value="'+escapeHtml(student?.father_name||'')+'"></div><div class="form-group"><label>Class</label><select id="m-class" required><option value="">Select Class</option>'+optionList(AppContext.state.classes,student?.class_id||'','id',c=>c.class_name)+'</select></div><div class="form-group"><label>Phone</label><input id="m-phone" value="'+escapeHtml(student?.phone_number||'')+'"></div></div><div class="actions" style="margin-top:15px"><button class="btn btn-gold" type="submit">Save Student</button><button id="m-cancel" class="btn btn-ghost" type="button">Cancel</button></div></form>';
+  back.appendChild(box);root.appendChild(back);document.getElementById('m-cancel').onclick=()=>back.remove();return {back,form:document.getElementById('student-modal-form')};
+}
+function openStudent(id=null){
+  const st=id?AppContext.state.students.find(s=>s.id===id):null,{back,form}=popupForm(st);
+  form.onsubmit=async e=>{e.preventDefault();try{const result=await StudentService.save(AppContext.state,{id:st?.id,created_at:st?.created_at,roll_number:document.getElementById('m-roll').value,student_name:document.getElementById('m-name').value,father_name:document.getElementById('m-father').value,class_id:document.getElementById('m-class').value,phone_number:document.getElementById('m-phone').value,status:st?.status||'active'});await ActivityService.log(AppContext.state,{action:st?'student_updated':'student_added',entity_type:'student',entity_id:result.row.id,message:(st?'Updated ':'Added ')+result.row.student_name});await AppContext.save();back.remove();PopupService.success(st?'Student updated.':'Student added.');renderStats();renderTable()}catch(err){PopupService.error(err.message)}};
+}
+async function removeStudent(id){
+  const s=AppContext.state.students.find(x=>x.id===id);if(!s)return;
+  if(!await PopupService.confirm('Delete Student','Delete '+s.student_name+' from the active registry? This does not delete fee history.','Delete'))return;
+  try{await StudentService.softDelete(AppContext.state,id);await ActivityService.log(AppContext.state,{action:'student_deleted',entity_type:'student',entity_id:id,message:'Deleted '+s.student_name});await AppContext.save();PopupService.success('Student deleted.');renderStats();renderTable()}catch(e){PopupService.error(e.message)}
+}
+async function importFile(file){
+  try{
+    const wb=XLSX.read(await file.arrayBuffer(),{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]],raw=XLSX.utils.sheet_to_json(ws,{defval:''});
+    const norm=k=>String(k).toLowerCase().replace(/[^a-z0-9]/g,''),get=(r,names)=>{for(const n of names){const k=Object.keys(r).find(x=>norm(x)===norm(n));if(k)return r[k]}return ''};
+    const classes=AppContext.state.classes;
+    const rows=raw.map(r=>{const classText=String(get(r,['class','grade'])).trim();const c=classes.find(x=>String(x.class_name).trim().toLowerCase()===classText.toLowerCase());return {roll_number:String(get(r,['roll number','roll no','roll'])).trim(),student_name:String(get(r,['student name','name'])).trim(),father_name:String(get(r,['father name','father'])).trim(),class_id:c?.id||'',class_text:classText,phone_number:String(get(r,['phone','mobile','contact'])).trim()}}).filter(r=>r.roll_number||r.student_name||r.father_name||r.class_text);
+    const preview=rows.slice(0,10).map(r=>r.roll_number+' | '+r.student_name+' | '+r.father_name+' | '+r.class_text).join('\n');
+    if(!await PopupService.confirm('Import Preview',rows.length+' non-empty row(s) detected. First rows:\n\n'+preview+'\n\nRows with invalid/missing class or duplicates will be skipped.','Import'))return;
+    const result=await StudentService.bulkImport(AppContext.state,rows);await ActivityService.log(AppContext.state,{action:'students_imported',entity_type:'student',message:'Imported '+result.accepted.length+' students'});await AppContext.save();PopupService.success('Imported '+result.accepted.length+' student(s); skipped '+result.skipped.length+'.');renderStats();renderTable();
+  }catch(e){PopupService.error('Import failed: '+e.message)}
+}
+export default{
+  async init(){
+    renderStats();renderFilters();renderTable();
+    document.getElementById('student-add').onclick=()=>openStudent();
+    const refresh=debounce(()=>{page=1;renderTable()},220);
+    document.getElementById('student-search').oninput=refresh;document.getElementById('student-class-filter').onchange=refresh;document.getElementById('student-status-filter').onchange=refresh;
+    document.getElementById('student-export').onclick=()=>ExportService.csv(activeRows().map(s=>({roll_number:s.roll_number,student_name:s.student_name,father_name:s.father_name,class:className(AppContext.state,s.class_id),phone:s.phone_number,status:s.status})),'UMEED-Students.csv');
+    document.getElementById('student-import').onclick=()=>{const input=document.getElementById('global-file-input');input.accept='.xlsx,.xls,.csv';input.value='';input.onchange=()=>input.files?.[0]&&importFile(input.files[0]);input.click()};
+  },
+  destroy(){}
+};

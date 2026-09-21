@@ -1,0 +1,36 @@
+<div class="app-shell">
+<header class="topbar">
+  <a class="brand" href="#" data-route="dashboard">
+    <img src="assets/logo.svg" alt="UMEED">
+    <span><b>UMEED EDUCATION SYSTEM</b><small>Fee Management</small></span>
+  </a>
+  <nav id="desktop-nav" class="desktop-nav"></nav>
+  <div class="top-actions">
+    <button class="icon-button" id="cloud-refresh" title="Refresh from Supabase" aria-label="Refresh">↻</button>
+    <span id="connection-pill" class="connection-pill">Offline</span>
+    <button class="icon-button mobile-only" id="mobile-menu-button" aria-label="Open menu">☰</button>
+  </div>
+</header>
+
+<aside id="mobile-drawer" class="mobile-drawer" aria-hidden="true">
+  <div class="drawer-head"><b>UMEED</b><button class="icon-button" id="drawer-close">×</button></div>
+  <nav id="drawer-nav"></nav>
+  <div class="drawer-sync">
+    <div><small>Offline queue</small><strong id="queue-count">0</strong></div>
+    <button class="btn btn-gold" id="manual-sync-button">Sync Pending</button>
+  </div>
+</aside>
+<div id="drawer-backdrop" class="drawer-backdrop"></div>
+
+<main class="main">
+  <div id="page-host" class="page-host"></div>
+</main>
+
+<nav id="mobile-dock" class="mobile-dock">
+  <button data-route="dashboard"><span>⌂</span><small>Home</small></button>
+  <button data-route="students"><span>♙</span><small>Students</small></button>
+  <button data-route="fee-entry" class="dock-primary"><span>＋</span><small>Fee</small></button>
+  <button data-route="ledger"><span>▤</span><small>Ledger</small></button>
+  <button id="dock-more"><span>•••</span><small>More</small></button>
+</nav>
+</div>

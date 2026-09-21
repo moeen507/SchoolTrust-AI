@@ -1,0 +1,32 @@
+{
+  "name":"umeed-fee-management-production",
+  "version":"3.0.0",
+  "private":true,
+  "description":"UMEED Education System production fee management for Windows, Chrome/PWA and Android.",
+  "main":"main.js",
+  "scripts":{
+    "prepare:web":"node scripts/prepare-web.mjs",
+    "start":"npm run prepare:web && electron .",
+    "build:portable":"npm run prepare:web && electron-builder --win portable --x64 --publish never",
+    "build:installer":"npm run prepare:web && electron-builder --win nsis --x64 --publish never",
+    "mobile:add":"npm run prepare:web && npx cap add android",
+    "mobile:sync":"npm run prepare:web && npx cap sync android",
+    "mobile:open":"npx cap open android"
+  },
+  "dependencies":{"@capacitor/android":"8.5.2","@capacitor/core":"8.5.2","xlsx":"0.18.5"},
+  "devDependencies":{"@capacitor/cli":"8.5.2","electron":"44.4.3","electron-builder":"26.16.1"},
+  "build":{
+    "appId":"com.umeed.education.feemanagement",
+    "productName":"UMEED Fee Management",
+    "asar":true,
+    "directories":{"output":"dist","buildResources":"assets"},
+    "files":["index.html","app-shell.html","pages/**/*","js/**/*","css/**/*","assets/**/*","vendor/**/*","main.js","preload.js","manifest.webmanifest","sw.js","package.json"],
+    "win":{
+      "icon":"assets/icon.ico",
+      "target":[{"target":"portable","arch":["x64"]},{"target":"nsis","arch":["x64"]}],
+      "artifactName":"UMEED-Fee-Management-v3.0.0-x64.exe"
+    },
+    "portable":{"artifactName":"UMEED-Fee-Management-Portable-v3.0.0-x64.exe"},
+    "nsis":{"oneClick":false,"allowToChangeInstallationDirectory":true,"createDesktopShortcut":true,"createStartMenuShortcut":true,"shortcutName":"UMEED Fee Management","perMachine":false}
+  }
+}

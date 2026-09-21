@@ -1,0 +1,11 @@
+{
+  "name":"UMEED Education System — Fee Management",
+  "short_name":"UMEED Fees",
+  "start_url":"./index.html",
+  "scope":"./",
+  "display":"standalone",
+  "background_color":"#0A0C10",
+  "theme_color":"#B10515",
+  "description":"UMEED centralized fee management for desktop and mobile.",
+  "icons":[{"src":"assets/logo.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}

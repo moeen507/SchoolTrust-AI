@@ -1,0 +1,13 @@
+@page{size:A5 portrait;margin:0}
+@media print{
+  body{background:#fff!important;padding:0!important}
+  body:not(.report-printing) *{visibility:hidden!important}
+  body:not(.report-printing) .a5-slip,body:not(.report-printing) .a5-slip *{visibility:visible!important}
+  body:not(.report-printing) .a5-slip{position:absolute!important;left:0!important;top:0!important;width:148mm!important;min-height:210mm!important;margin:0!important;padding:10mm!important;box-shadow:none!important;border-radius:0!important}
+  body.report-printing *{visibility:hidden!important}
+  body.report-printing #report-host,body.report-printing #report-host *{visibility:visible!important}
+  body.report-printing #report-host{position:absolute;left:0;top:0;width:100%;padding:8mm;color:#111;background:#fff}
+  body.report-printing #report-host table{color:#111;background:#fff}
+  body.report-printing #report-host th,body.report-printing #report-host td{color:#111;border-color:#bbb;background:#fff}
+  .no-print{display:none!important}
+}
