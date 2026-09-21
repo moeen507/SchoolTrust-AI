@@ -87,7 +87,7 @@ create table if not exists public.counter_sale_items(
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-create index if not exists counter_sale_items_sale_idx on public.counter_sale_items(sale_id);
+create index if not exists counter_sale_items_org_id_idx on public.counter_sale_items(org_id);\ncreate index if not exists counter_sale_items_sale_idx on public.counter_sale_items(sale_id);
 create index if not exists counter_sale_items_catalog_idx on public.counter_sale_items(catalog_item_id);
 
 drop trigger if exists class_fee_schedule_set_updated_at on public.class_fee_schedule;
