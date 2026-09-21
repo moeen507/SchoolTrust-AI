@@ -2,6 +2,40 @@
   "name":"umeed-premium-fee-ledger",
   "version":"2.1.0",
   "private":true,
-  "scripts":{"mobile:add":"cap add android","mobile:sync":"cap sync android"},
-  "dependencies":{"@capacitor/android":"8.0.2","@capacitor/cli":"8.0.2","@capacitor/core":"8.0.2","xlsx":"0.18.5"}
+  "main":"main.cjs",
+  "scripts":{
+    "desktop":"electron .",
+    "desktop:win":"electron-builder --win nsis --x64 --publish never",
+    "desktop:dir":"electron-builder --win --x64 --dir --publish never",
+    "mobile:add":"cap add android",
+    "mobile:sync":"cap sync android"
+  },
+  "dependencies":{
+    "@capacitor/android":"8.0.2",
+    "@capacitor/cli":"8.0.2",
+    "@capacitor/core":"8.0.2",
+    "xlsx":"0.18.5"
+  },
+  "devDependencies":{
+    "electron":"44.4.3",
+    "electron-builder":"26.16.1"
+  },
+  "build":{
+    "appId":"com.umeed.education.premiumfeeledger",
+    "productName":"UMEED Premium Fee Ledger",
+    "asar":true,
+    "directories":{"output":"release"},
+    "files":["www/**/*","main.cjs","preload.cjs","package.json"],
+    "win":{
+      "target":[{"target":"nsis","arch":["x64"]}],
+      "artifactName":"UMEED-Premium-Fee-Ledger-Setup-v2.1.0-x64.exe"
+    },
+    "nsis":{
+      "oneClick":false,
+      "allowToChangeInstallationDirectory":true,
+      "createDesktopShortcut":true,
+      "createStartMenuShortcut":true,
+      "shortcutName":"UMEED Premium Fee Ledger"
+    }
+  }
 }
