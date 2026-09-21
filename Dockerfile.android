@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21-jdk-jammy
+FROM eclipse-temurin:21-jdk-jammy AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV ANDROID_HOME=/opt/android-sdk
@@ -8,7 +8,7 @@ ENV PATH=/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-too
 ENV CSC_IDENTITY_AUTO_DISCOVERY=false
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl unzip python3 gnupg zip p7zip-full wine64 \
+ && apt-get install -y --no-install-recommends ca-certificates curl unzip gnupg zip p7zip-full wine64 \
  && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
  && apt-get install -y --no-install-recommends nodejs \
  && rm -rf /var/lib/apt/lists/*
@@ -55,5 +55,8 @@ RUN zip -qr /artifacts/UMEED-Fee-Management-v3.1.0-Source.zip . \
                  /artifacts/UMEED-Fee-Management-v3.1.0-Source.zip \
                  > /artifacts/UMEED-Fee-Management-v3.1.0-SHA256.txt
 
+FROM python:3.12-alpine AS runtime
+WORKDIR /artifacts
+COPY --from=builder /artifacts /artifacts
 EXPOSE 8080
 CMD ["sh","-c","python3 -m http.server ${PORT:-8080} --directory /artifacts --bind 0.0.0.0"]
