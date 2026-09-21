@@ -1,0 +1,28 @@
+FROM eclipse-temurin:21-jdk-jammy
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV CSC_IDENTITY_AUTO_DISCOVERY=false
+
+RUN dpkg --add-architecture i386 \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates curl unzip python3 gnupg xvfb wine64 wine32 \
+ && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+ && apt-get install -y --no-install-recommends nodejs \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /work
+COPY build-input/UMEED-Central-Student-Management-v0.5.2.zip /work/source.zip
+RUN unzip -q /work/source.zip -d /work/source
+WORKDIR /work/source/UMEED-Central-SMS-v0.5.0
+
+RUN npm install --no-audit --no-fund
+RUN npm run qa:package
+RUN npm run build
+
+RUN mkdir -p /artifacts \
+ && xvfb-run -a npx electron-builder --win nsis portable --x64 --publish never \
+ && cp release/*.exe /artifacts/ \
+ && sha256sum /artifacts/*.exe > /artifacts/UMEED-Windows-v0.5.2.sha256.txt
+
+EXPOSE 8080
+CMD ["sh","-c","python3 -m http.server ${PORT:-8080} --directory /artifacts --bind 0.0.0.0"]
