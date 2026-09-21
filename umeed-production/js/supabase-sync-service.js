@@ -18,8 +18,13 @@ export const SupabaseSyncService={
   async loadProfile(){
     const uid=AuthService.user()?.id;if(!uid)throw new Error('No authenticated user.');
     const rows=await rest('profiles?select=id,org_id,role,display_name&id=eq.'+encodeURIComponent(uid));
-    if(!rows?.length)throw new Error('Your login has no UMEED profile/organization assignment.');
-    this.profile=rows[0];return this.profile;
+    if(rows?.length){this.profile=rows[0];return this.profile}
+    const student=await rest('student_accounts?select=auth_user_id,org_id,student_id,login_id,must_change_password,status&auth_user_id=eq.'+encodeURIComponent(uid));
+    if(student?.length){
+      const a=student[0];this.profile={id:uid,org_id:a.org_id,role:'student',display_name:'Student '+a.login_id,student_id:a.student_id,login_id:a.login_id,must_change_password:a.must_change_password};
+      return this.profile;
+    }
+    throw new Error('Your login has no UMEED role assignment.');
   },
   orgId(){return this.profile?.org_id||null},
   async fetchTable(table,select='*',order='updated_at.desc'){
@@ -29,13 +34,14 @@ export const SupabaseSyncService={
     return await rest(q);
   },
   async refreshAll(){
-    const [students,classes,classFeeSchedule,feeEntries,feeReceipts,feeReceiptMonths,refunds,activity,settings,catalogItems,counterSales,counterSaleItems]=await Promise.all([
-      this.fetchTable('students'),this.fetchTable('classes'),this.fetchTable('class_fee_schedule'),
+    if(this.profile?.role==='student')throw new Error('Student accounts cannot load organization-wide data.');
+    const [students,classes,classFeeSchedule,studentClassHistory,feeEntries,feeReceipts,feeReceiptMonths,refunds,activity,settings,catalogItems,counterSales,counterSaleItems]=await Promise.all([
+      this.fetchTable('students'),this.fetchTable('classes'),this.fetchTable('class_fee_schedule'),this.fetchTable('student_class_history'),
       this.fetchTable('fee_entries'),this.fetchTable('fee_receipts'),this.fetchTable('fee_receipt_months'),
       this.fetchTable('refunds'),this.fetchTable('activity_log'),this.fetchTable('settings'),
       this.fetchTable('catalog_items'),this.fetchTable('counter_sales'),this.fetchTable('counter_sale_items')
     ]);
-    return {students,classes,classFeeSchedule,feeEntries,feeReceipts,feeReceiptMonths,refunds,activityLog:activity,settings:settings?.[0]||null,catalogItems,counterSales,counterSaleItems};
+    return {students,classes,classFeeSchedule,studentClassHistory,feeEntries,feeReceipts,feeReceiptMonths,refunds,activityLog:activity,settings:settings?.[0]||null,catalogItems,counterSales,counterSaleItems};
   },
   async upsert(table,row){
     const data={...row,org_id:this.orgId()};
@@ -47,11 +53,13 @@ export const SupabaseSyncService={
   },
   async rpc(name,payload){return await rest('rpc/'+name,{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)})},
   async healthCheck(){
-    const tables=['profiles','classes','class_fee_schedule','students','settings','fee_entries','fee_receipts','fee_receipt_months','refunds','catalog_items','counter_sales','counter_sale_items','activity_log','sync_metadata'];
+    if(this.profile?.role==='student')return [{table:'student_portal',ok:true}];
+    const tables=['profiles','classes','class_fee_schedule','student_class_history','students','settings','fee_entries','fee_receipts','fee_receipt_months','refunds','catalog_items','counter_sales','counter_sale_items','activity_log','sync_metadata'];
     const results=[];for(const table of tables){try{await rest(table+'?select=*&limit=1');results.push({table,ok:true})}catch(e){results.push({table,ok:false,error:e.message,status:e.status})}}
     return results;
   },
   async syncQueue(state,onProgress=()=>{}){
+    if(this.profile?.role==='student')throw new Error('Student accounts do not have sync permissions.');
     if(!navigator.onLine)throw new Error('Internet connection is required to sync pending records.');
     const pending=state.syncQueue.filter(q=>q.status==='pending');let done=0;
     for(const q of pending){
@@ -65,7 +73,6 @@ export const SupabaseSyncService={
         else if(q.type==='refund_rpc')remote=await this.rpc(q.payload?.p_fee_receipt_id!==undefined?'record_refund_v32':'record_refund',q.payload);
         else if(q.type==='counter_sale_rpc')remote=await this.rpc('record_counter_sale',q.payload);
         else{q.status='skipped';continue}
-
         if(q.type==='fee_rpc'){
           const row=Array.isArray(remote)?remote[0]:remote;if(row){state.feeEntries=state.feeEntries.filter(x=>x.id!==q.local_id);state.feeEntries.push(row)}
         }else if(q.type==='fee_receipt_rpc'){
@@ -79,13 +86,10 @@ export const SupabaseSyncService={
         }
         q.status='synced';q.synced_at=new Date().toISOString();q.last_error='';done++;onProgress(done,pending.length,q);
       }catch(e){
-        q.last_error=e.message;
-        if(this.isNetworkError(e))throw e;
-        throw new Error('Sync stopped on '+q.type+': '+e.message);
+        q.last_error=e.message;if(this.isNetworkError(e))throw e;throw new Error('Sync stopped on '+q.type+': '+e.message);
       }
     }
-    state.syncQueue=state.syncQueue.filter(q=>q.status==='pending');
-    state.lastSync=new Date().toISOString();
+    state.syncQueue=state.syncQueue.filter(q=>q.status==='pending');state.lastSync=new Date().toISOString();
     try{await this.upsert('sync_metadata',{id:crypto.randomUUID(),device_id:navigator.userAgent.slice(0,180),last_sync_at:state.lastSync,pending_count:state.syncQueue.length,updated_at:state.lastSync})}catch{}
     return {count:done,pending:state.syncQueue.length};
   }

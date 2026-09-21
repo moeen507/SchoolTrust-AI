@@ -1,37 +1,54 @@
 UMEED v3.2.0 — PRODUCTION NOTES
 
-STUDENT IDENTITY
-Core fields: Roll Number, Student Name, Parent/Guardian, Class, Phone/WhatsApp.
-Manual admissions allocate the next roll atomically from Supabase.
-Roll number is read-only after creation.
-Imports retain provided rolls and automatically reconcile the next roll counter.
+CENTRALIZED ARCHITECTURE
+- Supabase PostgreSQL + Auth is the centralized source of truth.
+- Netlify hosts the static web/PWA frontend only.
+- Windows Electron, Android APK and Netlify PWA use the same Supabase project.
+- The frontend contains only the publishable key; service-role credentials stay in Supabase Edge Functions.
 
-FEE ENTRY
-A single Fee Slip may contain multiple monthly fee lines for one fee year.
-Select one month, multiple months, or Select All Pending / Full Year.
-Each month keeps its own cash, discount and fine.
-Annual Fund remains a separate liability but may be paid on the same Fee Slip.
-One Fee Slip receives exactly one centrally allocated receipt number.
+ROLE MODEL
+- Owner is presented as Super Admin.
+- Super Admin: full system + User Management.
+- Admin: operational pages/settings; no staff-account deletion/creation.
+- Accountant/Cashier: Daily Collection, Fee Entry, Fee Slip, Syllabus+Canteen, Defaulters.
+- Student: own Student Portal only.
+- Student sessions do not load organization-wide tables.
 
-ROLE ACCESS
-Owner is presented as Super Admin.
-Super Admin: all pages + User Management.
-Admin: operational pages/settings, no User Management.
-Accountant/Cashier: Daily Collection, Fee Entry, Fee Slip, Syllabus+Canteen.
-Auditor: read-only collection/ledger/reports routes.
+STUDENT ACCOUNTS
+- Manual Add Student allocates the next roll atomically.
+- Roll Number is also the visible Student Login ID.
+- Import provisions portal accounts and exports generated temporary credentials.
+- Temporary passwords are not stored in plaintext in the database.
+- Student Portal data is returned by a secure auth.uid()-scoped RPC.
+- Student class changes create class-history rows so prior-year history remains intact.
+- Deleting/disabling a student disables that student's portal account.
 
-DAILY COLLECTION
-Date selector shows Monthly Fee Cash, Annual Fund, Syllabus, Canteen, Refunds, Gross and Net.
-Below totals, every receipt is listed slip-by-slip.
+ACCOUNTING
+- One Fee Slip can settle one, multiple or all pending months for a fee year.
+- Each month keeps its own cash, discount and fine.
+- Annual Fund is reconciled separately but may be paid on the same Fee Slip.
+- Fee Slip serial and combined Syllabus+Canteen serial are separate and centrally atomic.
+- Discount is never cash.
+- Refunds remain separate.
+- Legacy v3.0/v3.1 records remain readable.
 
-DESTRUCTIVE ACTIONS
-Student delete, catalog remove, user delete and local clear require password verification.
-Passwords are verified through Supabase Auth and are not stored in the app.
+ACCOUNTANT WORKSPACE
+- Date selector shows fee cash, Annual Fund, Syllabus, Canteen, refunds, gross and net.
+- Every collection row is shown slip-by-slip.
+- Accountant has no Settings, Student delete/edit registry, D6 or User Management access.
+
+DEFAULTER REMINDERS
+- From day 7 of each month, authorized staff get an in-app monthly defaulter alert.
+- The Defaulters page uses real saved parent/guardian WhatsApp numbers.
+- Messages are opened in WhatsApp for user confirmation/sending; the app does not silently send messages.
 
 OFFLINE
-Transactions may queue locally.
-Official receipt numbers are assigned only after Manual Sync.
-Manual student creation requires internet because roll allocation is central.
+- IndexedDB cache is scoped per authenticated user.
+- Student and staff cache cannot leak across role switches on the same device.
+- Official receipt numbers are only assigned centrally.
+- Manual new-student creation requires internet for atomic roll/account creation.
 
-LEGACY
-v3.0/v3.1 fee entries remain readable in Ledger, Reports and Daily Collection.
+NETLIFY
+- Drag/drop artifact: UMEED-Fee-Management-v3.2.0-Netlify-Deploy.zip
+- _headers and _redirects are included.
+- No Netlify database or serverless function is required for core operation.

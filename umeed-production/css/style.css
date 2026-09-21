@@ -152,3 +152,28 @@ tbody tr:hover td{background:rgba(227,194,111,.018)}
 .finder-empty{padding:14px;text-align:center}
 .premium-month-strip .month-cell.selected{border-color:var(--gold);box-shadow:0 0 0 1px rgba(227,194,111,.25),0 8px 24px rgba(0,0,0,.22);background:linear-gradient(180deg,rgba(227,194,111,.14),rgba(177,5,21,.10))}
 .premium-month-strip .month-cell:disabled{opacity:.66;cursor:not-allowed}
+
+
+/* v3.2 role-first login + student self-service */
+.role-login-card{width:min(760px,94vw)}
+.login-step-title{text-align:center;color:var(--muted);margin:8px 0 14px;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.login-role-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.login-role-card{appearance:none;border:1px solid rgba(227,194,111,.24);background:linear-gradient(180deg,rgba(227,194,111,.07),rgba(255,255,255,.015));border-radius:14px;padding:18px;color:var(--text);text-align:left;cursor:pointer;transition:.2s}
+.login-role-card:hover{transform:translateY(-2px);border-color:rgba(227,194,111,.72);box-shadow:0 14px 36px rgba(0,0,0,.24)}
+.login-role-card b{display:block;font-size:14px;color:var(--gold);margin-bottom:7px}
+.login-role-card span{display:block;font-size:11px;color:var(--muted);line-height:1.5}
+.login-selected-role{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.06)}
+.finder-wrap{position:relative}
+.finder-results{display:none;position:absolute;left:0;right:0;top:calc(100% + 5px);z-index:60;background:#10141c;border:1px solid rgba(227,194,111,.24);border-radius:12px;box-shadow:0 18px 42px rgba(0,0,0,.42);max-height:340px;overflow:auto}
+.finder-results.show{display:block}
+.finder-result{width:100%;display:flex;flex-direction:column;gap:4px;text-align:left;padding:11px 12px;border:0;border-bottom:1px solid rgba(255,255,255,.05);background:transparent;color:var(--text);cursor:pointer}
+.finder-result:hover{background:rgba(227,194,111,.08)}
+.finder-result b{font-size:12px;color:var(--gold)}
+.finder-result span,.finder-empty{font-size:10px;color:var(--muted)}
+.finder-empty{padding:14px}
+.premium-month-strip .month-cell.selected{outline:2px solid var(--gold);box-shadow:0 0 0 3px rgba(227,194,111,.12)}
+.premium-month-strip .month-cell:disabled{opacity:.7;cursor:not-allowed}
+@media(max-width:760px){
+  .login-role-grid{grid-template-columns:1fr}
+  .role-login-card{width:min(94vw,520px)}
+}

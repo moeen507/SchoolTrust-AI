@@ -1,39 +1,43 @@
 UMEED v3.2.0 — QA / ACCEPTANCE STATUS
 
-STATIC / ARCHITECTURE
-[PASS] Student core identity uses 5 fields
-[PASS] Manual student roll is read-only and centrally auto-incremented
-[PASS] Imported numeric rolls reconcile next roll
-[PASS] Global active roll uniqueness per organization
-[PASS] Two receipt series only: Fee and shared Syllabus+Canteen
-[PASS] Multi-month Fee Slip model
-[PASS] Full-year/all-pending month selection
-[PASS] Annual Fund installment reconciliation
-[PASS] Class/year fee schedule still used
-[PASS] Discount remains non-cash
-[PASS] Refunds remain separate
-[PASS] Role-based navigation
-[PASS] Super Admin server-side user management function
-[PASS] Accountant Daily Collection workspace
+IMPLEMENTED / STATIC REVIEW
+[PASS] Five core student identity fields
+[PASS] Atomic next roll for manual admission
+[PASS] Roll locked after creation
+[PASS] Imported rolls reconcile next roll
+[PASS] Student Portal account provisioning
+[PASS] Student Login ID = roll number
+[PASS] User-scoped local cache isolation
+[PASS] Student portal secure RPC scoped to auth.uid()
+[PASS] Class promotion history preserved
+[PASS] Role-first login
+[PASS] Super Admin user management
+[PASS] Accountant restricted navigation
+[PASS] Daily date-wise slip collection
+[PASS] Monthly defaulter alert from day 7
+[PASS] WhatsApp defaulter reminders
+[PASS] Multi-month/full-year Fee Slip
+[PASS] Annual Fund reconciliation
+[PASS] Two receipt series: Fee and shared Syllabus+Canteen
 [PASS] Password reauthentication for destructive actions
-[PASS] Legacy fee records remain readable
-[PASS] No dummy students/sales/catalog rows inserted
+[PASS] Netlify static/PWA deployment files
+[PASS] No service-role secret in frontend
+[PASS] No dummy student/sale/catalog data
 
 BUILD PIPELINE
 [PENDING until release build] JavaScript syntax gate
-[PENDING until release build] Android Gradle build
-[PENDING until release build] Windows Electron packaging
+[PENDING until release build] Netlify deploy ZIP
+[PENDING until release build] Android APK
+[PENDING until release build] Windows Electron ZIP
 [PENDING until release build] Source ZIP + SHA256
 
 REAL-DATA ACCEPTANCE
-[PENDING] Import real student list
-[PENDING] Confirm first auto roll after import
-[PENDING] Multi-month payment on real student
-[PENDING] Full-year payment
-[PENDING] Partial month + later balance payment
-[PENDING] Annual Fund installments
-[PENDING] Concurrent receipt test Windows + Android
-[PENDING] Create Accountant from Super Admin page
-[PENDING] Accountant access restriction test
-[PENDING] Password-protected deletion test
+[PENDING] Import real ~650 student file
+[PENDING] Verify generated student credentials
+[PENDING] Student login and own-history isolation on real records
+[PENDING] Promotion/class-history workflow
+[PENDING] Multi-month/full-year real payment
+[PENDING] Concurrent receipt tests across web/Windows/Android
+[PENDING] Accountant permissions with a real accountant account
+[PENDING] Defaulter WhatsApp phone validation
 [PENDING] A5 physical printer test
