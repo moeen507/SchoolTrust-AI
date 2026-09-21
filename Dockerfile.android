@@ -48,16 +48,12 @@ RUN mkdir -p /artifacts \
  && cd dist \
  && zip -qr /artifacts/UMEED-Fee-Management-v3.0.0-Windows-x64.zip win-unpacked
 
-RUN (npx electron-builder --win portable --x64 --publish never || true) \
- && if [ -f "dist/UMEED-Fee-Management-Portable-v3.0.0-x64.exe" ]; then cp "dist/UMEED-Fee-Management-Portable-v3.0.0-x64.exe" /artifacts/; fi
-
 RUN zip -qr /artifacts/UMEED-Fee-Management-v3.0.0-Source.zip . \
  -x "node_modules/*" "android/*" "web/*" "dist/*" \
  && sha256sum /artifacts/UMEED-Fee-Management-v3.0.0-Android.apk \
                  /artifacts/UMEED-Fee-Management-v3.0.0-Windows-x64.zip \
                  /artifacts/UMEED-Fee-Management-v3.0.0-Source.zip \
-                 > /artifacts/UMEED-Fee-Management-v3.0.0-SHA256.txt \
- && if [ -f /artifacts/UMEED-Fee-Management-Portable-v3.0.0-x64.exe ]; then sha256sum /artifacts/UMEED-Fee-Management-Portable-v3.0.0-x64.exe >> /artifacts/UMEED-Fee-Management-v3.0.0-SHA256.txt; fi
+                 > /artifacts/UMEED-Fee-Management-v3.0.0-SHA256.txt
 
 EXPOSE 8080
 CMD ["sh","-c","python3 -m http.server ${PORT:-8080} --directory /artifacts --bind 0.0.0.0"]
