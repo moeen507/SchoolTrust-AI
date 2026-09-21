@@ -1,24 +1,44 @@
-import {CONFIG} from './config.js';
 import {SupabaseSyncService} from './supabase-sync-service.js';
 
-const iso=()=>new Date().toISOString();
-const id=()=>crypto.randomUUID();
-function queue(state,operation){state.syncQueue=state.syncQueue.filter(q=>q.key!==operation.key);state.syncQueue.push(operation)}
-function payload(row){return {p_school_name:row.school_name,p_school_phone:row.school_phone,p_school_address:row.school_address,p_slip_prefix:row.slip_prefix,p_prepared_by:row.prepared_by}}
+function requireOnline(){
+  if(!navigator.onLine)throw new Error('Internet connection is required for administrative settings changes.');
+}
+function one(result){return Array.isArray(result)?result[0]:result}
+
 export const SettingsService={
-  normalize(input,current={}){
-    return {...current,school_name:String(input.school_name||'UMEED Education System').trim(),school_phone:String(input.school_phone||'').trim(),school_address:String(input.school_address||'').trim(),monthly_fee:CONFIG.monthlyFee,annual_fund:CONFIG.annualFund,slip_prefix:String(input.slip_prefix||'UES').trim()||'UES',prepared_by:String(input.prepared_by||'Admin/Cashier').trim(),updated_at:iso()};
+  async saveGeneral(state,input){
+    requireOnline();
+    const payload={
+      p_school_name:String(input.school_name||'UMEED Education System').trim(),
+      p_school_phone:String(input.school_phone||'').trim(),
+      p_school_address:String(input.school_address||'').trim(),
+      p_fee_prefix:String(input.fee_receipt_prefix||'UES').trim().toUpperCase()||'UES',
+      p_counter_prefix:String(input.counter_receipt_prefix||'SC').trim().toUpperCase()||'SC',
+      p_prepared_by:String(input.prepared_by||'Admin/Cashier').trim()||'Admin/Cashier'
+    };
+    const saved=one(await SupabaseSyncService.rpc('update_app_settings_v31',payload));
+    if(saved)state.settings=saved;
+    return saved;
   },
-  async save(state,input){
-    const row=this.normalize(input,state.settings);state.settings=row;
-    if(navigator.onLine&&SupabaseSyncService.profile){
-      try{
-        const result=await SupabaseSyncService.rpc('update_app_settings',payload(row));
-        const saved=Array.isArray(result)?result[0]:result;if(saved)state.settings=saved;
-        return {queued:false};
-      }catch(e){if(!SupabaseSyncService.isNetworkError(e))throw e}
-    }
-    queue(state,{id:id(),key:'settings',type:'settings_rpc',payload:payload(row),created_at:iso(),status:'pending'});
-    return {queued:true};
+  async saveCounters(state,nextFee,nextCounter){
+    requireOnline();
+    const saved=one(await SupabaseSyncService.rpc('update_receipt_counters',{p_next_fee:Number(nextFee),p_next_counter:Number(nextCounter)}));
+    if(saved)state.settings=saved;
+    return saved;
+  },
+  async saveClassFees(state,year,fees){
+    requireOnline();
+    const result=await SupabaseSyncService.rpc('upsert_class_fees_bulk',{p_fee_year:Number(year),p_fees:fees});
+    state.classFeeSchedule=(state.classFeeSchedule||[]).filter(x=>Number(x.fee_year)!==Number(year)).concat(result||[]);
+    return result||[];
+  },
+  async saveCatalogItem(state,item){
+    requireOnline();
+    const saved=one(await SupabaseSyncService.rpc('upsert_catalog_item',{
+      p_id:item.id||crypto.randomUUID(),p_channel:item.channel,p_item_code:String(item.item_code||''),
+      p_item_name:String(item.item_name||''),p_unit_price:Number(item.unit_price||0),p_status:item.status||'active'
+    }));
+    if(saved){state.catalogItems=(state.catalogItems||[]).filter(x=>x.id!==saved.id);state.catalogItems.push(saved)}
+    return saved;
   }
 };

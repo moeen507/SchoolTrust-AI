@@ -1,10 +1,9 @@
-const CACHE='umeed-fee-v3-shell';
+const CACHE='umeed-fee-v31-shell';
 const SHELL=['./index.html','./app-shell.html','./css/style.css','./css/print-a5.css','./assets/logo.svg','./js/app-state.js','./manifest.webmanifest'];
-self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL))));
-self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))));
+self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting())));
+self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{
-  if(e.request.method!=='GET') return;
-  const u=new URL(e.request.url);
-  if(u.hostname.endsWith('.supabase.co')) return;
-  e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)));
+  if(e.request.method!=='GET')return;
+  const u=new URL(e.request.url);if(u.hostname.endsWith('.supabase.co'))return;
+  e.respondWith(fetch(e.request).then(r=>{const clone=r.clone();caches.open(CACHE).then(c=>c.put(e.request,clone)).catch(()=>{});return r}).catch(()=>caches.match(e.request)));
 });

@@ -9,5 +9,7 @@
   body.report-printing #report-host{position:absolute;left:0;top:0;width:100%;padding:8mm;color:#111;background:#fff}
   body.report-printing #report-host table{color:#111;background:#fff}
   body.report-printing #report-host th,body.report-printing #report-host td{color:#111;border-color:#bbb;background:#fff}
+  .counter-slip-table{border-color:#bbb!important}
+  .counter-slip-table th,.counter-slip-table td{color:#111!important;background:#fff!important;border-color:#ddd!important}
   .no-print{display:none!important}
 }

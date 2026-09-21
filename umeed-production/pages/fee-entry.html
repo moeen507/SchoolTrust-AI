@@ -1,17 +1,17 @@
 <section data-page="fee-entry">
-<div class="page-header"><div><h1 class="page-title">Fee <span>Entry</span></h1><p class="page-subtitle">Monthly fee, Annual Fund, discount, fine and refund with centralized duplicate protection.</p></div></div>
+<div class="page-header"><div><h1 class="page-title">Fee <span>Entry</span></h1><p class="page-subtitle">Class-wise monthly fee, Annual Fund, discount, fine and refund with centralized duplicate protection.</p></div><div class="actions"><span class="badge gold" id="fee-series-badge">Fee Series: UES</span></div></div>
 <div id="fee-offline-banner"></div>
 <div class="card">
 <form id="fee-form">
 <div class="form-grid">
-  <div class="form-group span-2"><label>Student</label><input id="fee-student-search" autocomplete="off" placeholder="Roll number, name, class or phone"><input type="hidden" id="fee-student-id"></div>
+  <div class="form-group span-2"><label>Student / Roll Number</label><input id="fee-student-search" autocomplete="off" placeholder="Roll number, name, class or phone"><input type="hidden" id="fee-student-id"></div>
   <div class="form-group"><label>Receipt / Slip</label><input id="fee-receipt" readonly value="Assigned on save"></div>
   <div class="form-group"><label>Roll Number</label><input id="fee-roll" readonly></div>
   <div class="form-group"><label>Class</label><input id="fee-class" readonly></div>
   <div class="form-group"><label>Father Name</label><input id="fee-father" readonly></div>
   <div class="form-group"><label>Month</label><select id="fee-month" required></select></div>
   <div class="form-group"><label>Year</label><input id="fee-year" type="number" required></div>
-  <div class="form-group"><label>Monthly Fee</label><input id="fee-monthly" type="number" value="2000" readonly></div>
+  <div class="form-group"><label>Class Monthly Fee</label><input id="fee-monthly" type="number" readonly></div>
   <div class="form-group"><label>Cash Paid</label><input id="fee-cash" type="number" min="0" value="0"></div>
   <div class="form-group"><label>Discount / Concession</label><input id="fee-discount" type="number" min="0" value="0"></div>
   <div class="form-group"><label>Fine</label><input id="fee-fine" type="number" min="0" value="0"></div>
@@ -21,6 +21,7 @@
   <div class="form-group span-3"><label>Notes / Refund Reason</label><textarea id="fee-notes" rows="2"></textarea></div>
 </div>
 <div id="fee-balance-preview" class="summary-strip" style="margin-top:14px"></div>
+<div id="fee-month-status" class="month-grid premium-month-strip" style="margin-top:14px"></div>
 <div class="actions" style="margin-top:16px"><button type="submit" class="btn btn-gold">Save Fee & Generate Slip</button><button type="button" id="fee-open-ledger" class="btn btn-ghost">Open Ledger</button><button type="button" id="fee-whatsapp" class="btn btn-green">WhatsApp</button></div>
 </form>
 </div>

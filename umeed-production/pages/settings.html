@@ -1,18 +1,71 @@
 <section data-page="settings">
-<div class="page-header"><div><h1 class="page-title">System <span>Settings</span></h1><p class="page-subtitle">School identity, fixed fee policy, receipt numbering and centralized backend.</p></div></div>
+<div class="page-header">
+  <div><h1 class="page-title">System <span>Settings</span></h1><p class="page-subtitle">School identity, two receipt series, class-wise fees and Syllabus/Canteen catalogs.</p></div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header"><div class="card-title">School Identity</div></div>
+    <form id="settings-form">
+      <div class="form-grid">
+        <div class="form-group span-2"><label>School Name</label><input id="settings-school-name" required></div>
+        <div class="form-group"><label>School Phone</label><input id="settings-school-phone"></div>
+        <div class="form-group span-3"><label>School Address</label><input id="settings-school-address"></div>
+        <div class="form-group"><label>Annual Fund</label><input id="settings-annual-fund" type="number" value="2150" readonly></div>
+        <div class="form-group"><label>Prepared By / Cashier</label><input id="settings-prepared-by"></div>
+      </div>
+      <div class="actions" style="margin-top:16px"><button type="submit" class="btn btn-gold">Save School Settings</button></div>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">Receipt Series</div></div>
+    <p class="page-subtitle" style="margin-bottom:14px">Exactly two independent serials. Fee receipts are separate from the combined Syllabus + Canteen counter.</p>
+    <div class="form-grid">
+      <div class="form-group"><label>Fee Slip Prefix</label><input id="settings-fee-prefix"></div>
+      <div class="form-group"><label>Next Fee Slip Number</label><input id="settings-fee-next" type="number" min="1"></div>
+      <div class="form-group"><label>Syllabus + Canteen Prefix</label><input id="settings-counter-prefix"></div>
+      <div class="form-group"><label>Next Syllabus + Canteen Slip Number</label><input id="settings-counter-next" type="number" min="1"></div>
+    </div>
+    <div class="actions" style="margin-top:16px">
+      <button type="button" id="settings-save-prefixes" class="btn btn-gold">Save Prefixes</button>
+      <button type="button" id="settings-save-counters" class="btn btn-ghost">Update Next Numbers</button>
+    </div>
+    <p class="page-subtitle">For accounting safety, a receipt counter can move forward only; it cannot be rewound below a number already issued.</p>
+  </div>
+</div>
+
 <div class="card">
-<form id="settings-form"><div class="form-grid">
-  <div class="form-group span-2"><label>School Name</label><input id="settings-school-name" required></div>
-  <div class="form-group"><label>School Phone</label><input id="settings-school-phone"></div>
-  <div class="form-group span-3"><label>School Address</label><input id="settings-school-address"></div>
-  <div class="form-group"><label>Monthly Fee</label><input id="settings-monthly-fee" type="number" value="2000" readonly></div>
-  <div class="form-group"><label>Annual Fund</label><input id="settings-annual-fund" type="number" value="2150" readonly></div>
-  <div class="form-group"><label>Slip Prefix</label><input id="settings-slip-prefix"></div>
-  <div class="form-group"><label>Current Slip Number</label><input id="settings-slip-number" type="number" readonly></div>
-  <div class="form-group"><label>Prepared By / Cashier</label><input id="settings-prepared-by"></div>
-  <div class="form-group"><label>Print Paper</label><select id="settings-paper"><option>A5 Portrait</option></select></div>
-  <div class="form-group span-3"><label>Supabase Project URL</label><input id="settings-supabase-url" readonly></div>
-  <div class="form-group span-3"><label>Supabase Publishable Key</label><input id="settings-supabase-key" type="password" readonly></div>
-</div><div class="actions" style="margin-top:16px"><button type="submit" class="btn btn-gold">Save Settings</button><button type="button" id="settings-test-backend" class="btn btn-ghost">Test Backend</button><button type="button" id="settings-sign-out" class="btn btn-red">Sign Out</button></div></form>
+  <div class="card-header">
+    <div><div class="card-title">Class-wise Monthly Fee Schedule</div><p class="page-subtitle">Default Rs. 2,000. Override any class for the selected year. Fee Entry will fetch this automatically from the student's class.</p></div>
+    <div class="actions"><input id="settings-fee-year" type="number" style="width:110px"><button id="settings-load-class-fees" class="btn btn-ghost" type="button">Load Year</button><button id="settings-save-class-fees" class="btn btn-gold" type="button">Save All Class Fees</button></div>
+  </div>
+  <div id="settings-class-fee-grid"></div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header"><div><div class="card-title">Syllabus + Canteen Catalog</div><p class="page-subtitle">Both categories use one combined receipt series but maintain separate item lists.</p></div></div>
+    <div class="form-grid">
+      <div class="form-group"><label>Category</label><select id="catalog-channel"><option value="store">Student Syllabus / Store</option><option value="canteen">Canteen</option></select></div>
+      <div class="form-group"><label>Item Code</label><input id="catalog-code"></div>
+      <div class="form-group"><label>Item Name</label><input id="catalog-name"></div>
+      <div class="form-group"><label>Unit Price</label><input id="catalog-price" type="number" min="0" step="0.01"></div>
+    </div>
+    <div class="actions" style="margin-top:14px"><button id="catalog-save" class="btn btn-gold" type="button">Add Item</button><button id="catalog-clear" class="btn btn-ghost" type="button">Clear</button></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><div class="card-title">Active Catalog Items</div></div>
+    <div id="catalog-list"></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><div class="card-title">Central Backend</div></div>
+  <div class="form-grid">
+    <div class="form-group span-3"><label>Supabase Project URL</label><input id="settings-supabase-url" readonly></div>
+    <div class="form-group span-3"><label>Supabase Publishable Key</label><input id="settings-supabase-key" type="password" readonly></div>
+  </div>
+  <div class="actions" style="margin-top:16px"><button type="button" id="settings-test-backend" class="btn btn-ghost">Test Backend</button><button type="button" id="settings-sign-out" class="btn btn-red">Sign Out</button></div>
 </div>
 </section>

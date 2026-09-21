@@ -1,0 +1,46 @@
+<section data-page="student-counter">
+<div class="page-header">
+  <div><h1 class="page-title">Student <span>Syllabus + Canteen</span></h1><p class="page-subtitle">One combined student-services counter, one shared receipt series, separate from Fee Entry.</p></div>
+  <div class="actions"><span class="badge gold" id="counter-series-badge">Series: SC</span></div>
+</div>
+<div id="counter-offline-banner"></div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header"><div class="card-title">New Counter Sale</div></div>
+    <div class="form-grid">
+      <div class="form-group span-2"><label>Student / Roll Number</label><input id="counter-student-search" autocomplete="off" placeholder="Roll number, student name or phone"><input id="counter-student-id" type="hidden"></div>
+      <div class="form-group"><label>Category</label><select id="counter-channel"><option value="store">Student Syllabus / Store</option><option value="canteen">Canteen</option></select></div>
+      <div class="form-group"><label>Roll Number</label><input id="counter-roll" readonly></div>
+      <div class="form-group"><label>Class</label><input id="counter-class" readonly></div>
+      <div class="form-group"><label>Father Name</label><input id="counter-father" readonly></div>
+      <div class="form-group"><label>Sale Date</label><input id="counter-date" type="date"></div>
+    </div>
+
+    <div class="counter-add-row" style="margin-top:16px">
+      <div class="form-group"><label>Catalog Item</label><select id="counter-item-select"><option value="">Custom / Select Item</option></select></div>
+      <div class="form-group"><label>Item Name</label><input id="counter-item-name"></div>
+      <div class="form-group"><label>Qty</label><input id="counter-item-qty" type="number" min="0.01" step="0.01" value="1"></div>
+      <div class="form-group"><label>Unit Price</label><input id="counter-item-price" type="number" min="0" step="0.01"></div>
+      <button id="counter-add-item" class="btn btn-gold" type="button">Add to Slip</button>
+    </div>
+
+    <div id="counter-cart" style="margin-top:16px"></div>
+    <div class="form-group" style="margin-top:14px"><label>Notes</label><textarea id="counter-notes" rows="2"></textarea></div>
+    <div class="actions" style="margin-top:16px">
+      <button id="counter-save" class="btn btn-gold" type="button">Save & Generate Slip</button>
+      <button id="counter-clear" class="btn btn-ghost" type="button">Clear Cart</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">Counter Slip Preview</div><div class="actions"><button id="counter-print" class="btn btn-ghost" type="button">Print A5</button></div></div>
+    <div id="counter-slip-host" class="slip-preview-wrap"><div class="empty-state">Save or select a counter receipt to preview it.</div></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><div><div class="card-title">Recent Syllabus + Canteen Receipts</div><p class="page-subtitle">Both categories share one serial sequence.</p></div></div>
+  <div id="counter-recent"></div>
+</div>
+</section>

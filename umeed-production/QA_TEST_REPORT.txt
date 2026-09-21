@@ -1,57 +1,35 @@
-UMEED FEE MANAGEMENT v3.0.0
-QA TEST REPORT
+UMEED v3.1.0 — QA / ACCEPTANCE STATUS
 
-BUILD-TIME TESTS REQUIRED BY RELEASE PIPELINE
-[PASS when release build completes] JavaScript syntax validation for main/preload/modules/controllers
-[PASS when release build completes] npm dependency installation
-[PASS when release build completes] Web/PWA asset preparation
-[PASS when release build completes] Android Gradle assembleDebug
-[PASS when release build completes] Windows Electron win-unpacked packaging
-[PASS when release build completes] Source ZIP generation
-[PASS when release build completes] SHA-256 artifact manifest
+STATIC LOGIC
+[PASS] Two active receipt series only
+[PASS] Fee series separate from Syllabus+Canteen
+[PASS] Syllabus and Canteen share one counter serial
+[PASS] Class fee schedule supports year + class
+[PASS] Default class fee Rs. 2,000
+[PASS] Annual Fund remains separate
+[PASS] Fee Entry uses central LedgerEngine
+[PASS] Syllabus/Canteen does not alter Fee outstanding
+[PASS] Counter sale RPC is idempotent by client UUID
+[PASS] Receipt allocation is atomic
+[PASS] No dummy students, catalog items or sales inserted
+[PASS] Mobile route includes combined Syllabus+Canteen counter
+[PASS] Settings exposes Fee and combined Counter series only
 
-STATIC / LOGIC REVIEW
-[PASS] No dummy student array or demo rows in default state
-[PASS] One IndexedDB cache key
-[PASS] One LedgerEngine implementation
-[PASS] Dashboard consumes LedgerEngine
-[PASS] ReportsEngine consumes LedgerEngine
-[PASS] Slip/WhatsApp consume LedgerEngine
-[PASS] Discount is not added to cash
-[PASS] Annual Fund tracked separately
-[PASS] Refunds stored separately
-[PASS] Duplicate student checks: class+roll and class+student+father
-[PASS] Excel/CSV header aliases supported
-[PASS] Import preview before save
-[PASS] Manual sync queue
-[PASS] No service-role key in frontend
-[PASS] Electron nodeIntegration=false / contextIsolation=true / sandbox=true / webSecurity=true
-[PASS] External links restricted to WhatsApp
-[PASS] Official receipt allocation is centralized/atomic in SQL
-[PASS] Fee RPC is idempotent by client-provided UUID
-[PASS] Concurrent student fee writes serialized by advisory transaction lock
+LIVE PROJECT STATE AT v3.1 UPDATE
+- 14 class-fee schedule rows for 2026
+- 0 students
+- 0 catalog items
+- 0 counter sales
 
-REQUIRES LIVE SUPABASE / REAL-DATA TESTING
-[PENDING] Create owner Auth user and bootstrap profile
-[PENDING] Verify all RLS roles in target Supabase project
-[PENDING] Add/Edit/Delete real student
-[PENDING] Import actual school spreadsheet (700+ rows)
-[PENDING] Full monthly payment
-[PENDING] Partial monthly payment then balance payment
-[PENDING] Rs.500 discount against Rs.1,500 cash example
-[PENDING] Fine
-[PENDING] Annual Fund partial/full
-[PENDING] Refund-only transaction
-[PENDING] Fee + linked refund transaction
-[PENDING] Duplicate monthly fee race test from Windows + Android
-[PENDING] Concurrent official receipt numbering from multiple devices
-[PENDING] Manual offline queue replay
-[PENDING] Month-wise and yearly reports compared to real ledger
-[PENDING] WhatsApp number/message validation with real parent contacts
-[PENDING] A5 physical printer test
-[PENDING] Restart/persistence test on target Windows PC
-[PENDING] Android device test on target phones
-
-CONCLUSION
-The source architecture and release packaging can be validated without school data.
-Production acceptance must remain pending until the target Supabase schema/auth and real school workflows are tested.
+REQUIRES REAL-DATA ACCEPTANCE TESTING
+[PENDING] Import real students
+[PENDING] Verify class-specific fee changes with real classes
+[PENDING] Partial monthly fee
+[PENDING] Annual Fund installments
+[PENDING] Fee duplicate/race test across Windows + Android
+[PENDING] Add real Syllabus catalog
+[PENDING] Add real Canteen catalog
+[PENDING] Shared Syllabus/Canteen serial concurrency test
+[PENDING] Offline queue replay
+[PENDING] A5 physical print test
+[PENDING] Parent WhatsApp validation

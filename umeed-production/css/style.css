@@ -131,3 +131,13 @@ tbody tr:hover td{background:rgba(227,194,111,.018)}
   #toast-root{left:12px;right:12px;top:64px}.toast{min-width:0;max-width:none}
 }
 @media(max-width:480px){.stats-row{grid-template-columns:1fr}.summary-strip{grid-template-columns:1fr 1fr}.a5-slip{width:100%;min-height:auto;padding:16px}.top-actions .connection-pill{display:none}}
+
+.counter-add-row{display:grid;grid-template-columns:1.5fr 1.5fr .6fr .8fr auto;gap:10px;align-items:end}
+.counter-add-row .btn{height:39px;white-space:nowrap}
+.premium-month-strip{grid-template-columns:repeat(12,minmax(74px,1fr));overflow-x:auto;padding-bottom:3px}
+.premium-month-strip .month-cell{min-width:74px;background:#0e131a;cursor:pointer}
+.premium-month-strip .month-cell:hover{transform:translateY(-1px);border-color:var(--gold)}
+.counter-slip-table table{min-width:0}
+.counter-slip-table th,.counter-slip-table td{color:#111;background:#fff;border-color:#ddd}
+@media(max-width:1100px){.counter-add-row{grid-template-columns:repeat(2,1fr)}.counter-add-row .btn{grid-column:1/-1}}
+@media(max-width:820px){.premium-month-strip{grid-template-columns:repeat(12,84px)}.counter-add-row{grid-template-columns:1fr 1fr}.counter-add-row .form-group:first-child,.counter-add-row .form-group:nth-child(2),.counter-add-row .btn{grid-column:1/-1}}

@@ -6,5 +6,6 @@ export const AppContext={
   refreshCloud:null,
   syncPending:null,
   signOut:null,
-  setSelectedSlip:null
+  setSelectedSlip:null,
+  setSelectedCounterSale:null
 };

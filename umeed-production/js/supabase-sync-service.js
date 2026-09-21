@@ -29,11 +29,12 @@ export const SupabaseSyncService={
     return await rest(q);
   },
   async refreshAll(){
-    const [students,classes,feeEntries,refunds,activity,settings]=await Promise.all([
-      this.fetchTable('students'),this.fetchTable('classes'),this.fetchTable('fee_entries'),
-      this.fetchTable('refunds'),this.fetchTable('activity_log'),this.fetchTable('settings')
+    const [students,classes,classFeeSchedule,feeEntries,refunds,activity,settings,catalogItems,counterSales,counterSaleItems]=await Promise.all([
+      this.fetchTable('students'),this.fetchTable('classes'),this.fetchTable('class_fee_schedule'),
+      this.fetchTable('fee_entries'),this.fetchTable('refunds'),this.fetchTable('activity_log'),this.fetchTable('settings'),
+      this.fetchTable('catalog_items'),this.fetchTable('counter_sales'),this.fetchTable('counter_sale_items')
     ]);
-    return {students,classes,feeEntries,refunds,activityLog:activity,settings:settings?.[0]||null};
+    return {students,classes,classFeeSchedule,feeEntries,refunds,activityLog:activity,settings:settings?.[0]||null,catalogItems,counterSales,counterSaleItems};
   },
   async upsert(table,row){
     const data={...row,org_id:this.orgId()};
@@ -45,9 +46,9 @@ export const SupabaseSyncService={
   },
   async rpc(name,payload){return await rest('rpc/'+name,{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)})},
   async healthCheck(){
-    const results=[];for(const table of ['profiles','classes','students','settings','fee_entries','refunds','activity_log','sync_metadata']){
-      try{await rest(table+'?select=*&limit=1');results.push({table,ok:true})}catch(e){results.push({table,ok:false,error:e.message,status:e.status})}
-    }return results;
+    const tables=['profiles','classes','class_fee_schedule','students','settings','fee_entries','refunds','catalog_items','counter_sales','counter_sale_items','activity_log','sync_metadata'];
+    const results=[];for(const table of tables){try{await rest(table+'?select=*&limit=1');results.push({table,ok:true})}catch(e){results.push({table,ok:false,error:e.message,status:e.status})}}
+    return results;
   },
   async syncQueue(state,onProgress=()=>{}){
     if(!navigator.onLine)throw new Error('Internet connection is required to sync pending records.');
@@ -56,20 +57,21 @@ export const SupabaseSyncService={
       try{
         let remote=null;
         if(q.type==='student_upsert')remote=await this.upsert('students',q.payload);
-        else if(q.type==='settings_rpc')remote=await this.rpc('update_app_settings',q.payload);
+        else if(q.type==='settings_v31_rpc')remote=await this.rpc('update_app_settings_v31',q.payload);
         else if(q.type==='activity_upsert')remote=await this.upsert('activity_log',q.payload);
         else if(q.type==='fee_rpc')remote=await this.rpc('record_fee_entry',q.payload);
         else if(q.type==='refund_rpc')remote=await this.rpc('record_refund',q.payload);
+        else if(q.type==='counter_sale_rpc')remote=await this.rpc('record_counter_sale',q.payload);
         else{q.status='skipped';continue}
-
         if(q.type==='fee_rpc'){
           const row=Array.isArray(remote)?remote[0]:remote;if(row){state.feeEntries=state.feeEntries.filter(x=>x.id!==q.local_id);state.feeEntries.push(row)}
         }else if(q.type==='refund_rpc'){
           const row=Array.isArray(remote)?remote[0]:remote;if(row){state.refunds=state.refunds.filter(x=>x.id!==q.local_id);state.refunds.push(row)}
-        }else if(q.type==='settings_rpc'){
+        }else if(q.type==='settings_v31_rpc'){
           const row=Array.isArray(remote)?remote[0]:remote;if(row)state.settings=row;
+        }else if(q.type==='counter_sale_rpc'){
+          const row=Array.isArray(remote)?remote[0]:remote;if(row){state.counterSales=state.counterSales.filter(x=>x.id!==q.local_id);state.counterSales.push(row)}
         }
-
         q.status='synced';q.synced_at=new Date().toISOString();q.last_error='';done++;onProgress(done,pending.length,q);
       }catch(e){
         q.last_error=e.message;
