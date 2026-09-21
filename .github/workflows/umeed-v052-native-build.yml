@@ -1,0 +1,123 @@
+name: UMEED v0.5.2 Native Binaries
+
+on:
+  push:
+    branches:
+      - umeed-student-management-v0.5.1-build
+    paths:
+      - ".github/workflows/umeed-v052-native-build.yml"
+      - "build-input/UMEED-Central-Student-Management-v0.5.2.zip"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Expand source
+        run: |
+          mkdir -p build-work
+          unzip -q build-input/UMEED-Central-Student-Management-v0.5.2.zip -d build-work
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Install dependencies
+        working-directory: build-work/UMEED-Central-SMS-v0.5.0
+        run: npm install --no-audit --no-fund
+
+      - name: QA and web build
+        working-directory: build-work/UMEED-Central-SMS-v0.5.0
+        run: |
+          npm run qa:package
+          npm run build
+
+      - name: Build APK
+        working-directory: build-work/UMEED-Central-SMS-v0.5.0
+        run: |
+          npx cap add android
+          npx cap sync android
+          chmod +x android/gradlew
+          cd android
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Prepare Android artifact
+        run: |
+          cp build-work/UMEED-Central-SMS-v0.5.0/android/app/build/outputs/apk/debug/app-debug.apk UMEED-Student-Management-v0.5.2-Android.apk
+          sha256sum UMEED-Student-Management-v0.5.2-Android.apk > UMEED-Student-Management-v0.5.2-Android.sha256.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: UMEED-Android-v0.5.2
+          path: |
+            UMEED-Student-Management-v0.5.2-Android.apk
+            UMEED-Student-Management-v0.5.2-Android.sha256.txt
+          if-no-files-found: error
+          retention-days: 14
+
+  windows:
+    name: Windows Desktop
+    runs-on: windows-latest
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Expand source
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force build-work | Out-Null
+          Expand-Archive -Path "build-input/UMEED-Central-Student-Management-v0.5.2.zip" -DestinationPath "build-work" -Force
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        working-directory: build-work/UMEED-Central-SMS-v0.5.0
+        run: npm install --no-audit --no-fund
+
+      - name: QA and web build
+        working-directory: build-work/UMEED-Central-SMS-v0.5.0
+        run: |
+          npm run qa:package
+          npm run build
+
+      - name: Build Windows installer and portable app
+        working-directory: build-work/UMEED-Central-SMS-v0.5.0
+        run: npx electron-builder --win nsis portable --x64 --publish never
+
+      - name: Prepare Windows checksums
+        shell: pwsh
+        run: |
+          Get-ChildItem "build-work/UMEED-Central-SMS-v0.5.0/release/*.exe" | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            "$hash  $($_.Name)" | Out-File -Append -Encoding ascii "UMEED-Windows-v0.5.2.sha256.txt"
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: UMEED-Windows-v0.5.2
+          path: |
+            build-work/UMEED-Central-SMS-v0.5.0/release/*.exe
+            UMEED-Windows-v0.5.2.sha256.txt
+          if-no-files-found: error
+          retention-days: 14
