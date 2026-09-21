@@ -1,0 +1,6 @@
+{
+  "appId": "com.umeed.education.feeledger",
+  "appName": "UMEED Fee Ledger",
+  "webDir": "www",
+  "server": { "androidScheme": "https" }
+}

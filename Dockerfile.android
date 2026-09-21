@@ -21,14 +21,10 @@ RUN mkdir -p /opt/android-sdk/cmdline-tools /tmp/android-tools \
 
 RUN sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
-WORKDIR /work
-COPY build-input/UMEED-Central-Student-Management-v0.5.2.zip /work/source.zip
-RUN unzip -q /work/source.zip -d /work/source
-WORKDIR /work/source/UMEED-Central-SMS-v0.5.0
+WORKDIR /app
+COPY old-umeed-app /app
 
 RUN npm install --no-audit --no-fund
-RUN npm run qa:package
-RUN npm run build
 RUN npx cap add android \
  && npx cap sync android \
  && chmod +x android/gradlew \
@@ -36,8 +32,9 @@ RUN npx cap add android \
  && ./gradlew assembleDebug --no-daemon
 
 RUN mkdir -p /artifacts \
- && cp android/app/build/outputs/apk/debug/app-debug.apk /artifacts/UMEED-Student-Management-v0.5.2-Android.apk \
- && sha256sum /artifacts/UMEED-Student-Management-v0.5.2-Android.apk > /artifacts/UMEED-Student-Management-v0.5.2-Android.sha256.txt
+ && cp -r www/* /artifacts/ \
+ && cp android/app/build/outputs/apk/debug/app-debug.apk /artifacts/UMEED-Fee-Ledger-Android-v1.0.0.apk \
+ && sha256sum /artifacts/UMEED-Fee-Ledger-Android-v1.0.0.apk > /artifacts/UMEED-Fee-Ledger-Android-v1.0.0.sha256.txt
 
 EXPOSE 8080
 CMD ["sh","-c","python3 -m http.server ${PORT:-8080} --directory /artifacts --bind 0.0.0.0"]

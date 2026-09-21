@@ -1,0 +1,12 @@
+{
+  "name": "UMEED Education System Fee Ledger",
+  "short_name": "UMEED Fees",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#10050a",
+  "theme_color": "#6f1026",
+  "description": "UMEED Education System student fee ledger",
+  "icons": [
+    {"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
