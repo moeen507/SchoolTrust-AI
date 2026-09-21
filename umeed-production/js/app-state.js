@@ -8,6 +8,7 @@ import {ReportsEngine} from './reports-engine.js';
 import {AppContext} from './app-context.js';
 
 let state=emptyCache();
+let autoSyncInFlight=false;
 
 function mergeDefaults(settings={}){
   return {
@@ -35,8 +36,32 @@ function updateConnection(){
   });
 }
 function overlayPending(){
-  for(const q of (state.syncQueue||[]).filter(x=>x.status==='pending')){
-    if(q.type==='student_upsert'){state.students=state.students.filter(x=>x.id!==q.payload.id);state.students.push(q.payload)}
+  const pending=(state.syncQueue||[]).filter(x=>x.status==='pending');
+  for(const q of pending){
+    if(q.type==='student_upsert'){
+      state.students=state.students.filter(x=>x.id!==q.payload.id);state.students.push(q.payload);
+    }else if(q.type==='fee_receipt_rpc'){
+      const p=q.payload,id=q.local_id||p.p_id;
+      if(!state.feeReceipts.some(x=>x.id===id)){
+        state.feeReceipts.push({id,org_id:SupabaseSyncService.orgId(),student_id:p.p_student_id,receipt_no:null,fee_year:Number(p.p_fee_year),payment_date:p.p_payment_date,annual_fund_paid:Number(p.p_annual_fund_paid||0),notes:String(p.p_notes||''),source_device:p.p_source_device||'offline',status:'active',sync_status:'pending',created_at:q.created_at,updated_at:q.created_at});
+      }
+      if(!(state.feeReceiptMonths||[]).some(x=>x.receipt_id===id)){
+        const ledger=state.students.some(s=>s.id===p.p_student_id)?null:null;
+        for(const line of (p.p_months||[])){
+          state.feeReceiptMonths.push({id:id+':'+line.fee_month,org_id:SupabaseSyncService.orgId(),receipt_id:id,student_id:p.p_student_id,fee_month:Number(line.fee_month),fee_year:Number(p.p_fee_year),monthly_fee:0,cash_paid:Number(line.cash_paid||0),discount:Number(line.discount||0),fine:Number(line.fine||0),created_at:q.created_at,updated_at:q.created_at,_pending:true});
+        }
+      }
+    }else if(q.type==='refund_rpc'){
+      const p=q.payload,id=q.local_id||p.p_id;
+      if(!state.refunds.some(x=>x.id===id))state.refunds.push({id,org_id:SupabaseSyncService.orgId(),student_id:p.p_student_id,fee_receipt_id:p.p_fee_receipt_id||null,fee_entry_id:p.p_fee_entry_id||null,fee_year:Number(p.p_fee_year),amount:Number(p.p_amount||0),refund_date:p.p_refund_date,notes:String(p.p_notes||''),status:'active',sync_status:'pending',created_at:q.created_at,updated_at:q.created_at});
+    }else if(q.type==='counter_sale_rpc'){
+      const p=q.payload,id=q.local_id||p.p_id;
+      if(!state.counterSales.some(x=>x.id===id)){
+        const total=(p.p_items||[]).reduce((a,i)=>a+Number(i.quantity||0)*Number(i.unit_price||0),0);
+        state.counterSales.push({id,org_id:SupabaseSyncService.orgId(),student_id:p.p_student_id,channel:p.p_channel,receipt_no:null,sale_date:p.p_sale_date,subtotal:total,total,notes:String(p.p_notes||''),source_device:p.p_source_device||'offline',status:'active',sync_status:'pending',created_at:q.created_at,updated_at:q.created_at});
+        for(const [idx,i] of (p.p_items||[]).entries())state.counterSaleItems.push({id:id+':'+idx,org_id:SupabaseSyncService.orgId(),sale_id:id,catalog_item_id:i.catalog_item_id||null,item_name:i.item_name||'',quantity:Number(i.quantity||0),unit_price:Number(i.unit_price||0),line_total:Number(i.quantity||0)*Number(i.unit_price||0),created_at:q.created_at,updated_at:q.created_at,_pending:true});
+      }
+    }
   }
 }
 async function refreshStaffCloud({quiet=false}={}){
@@ -90,6 +115,24 @@ async function syncPending(){
     await refreshCloud({quiet:true});await persist();PopupService.success('Sync complete. '+result.count+' record(s) uploaded.');
     if(NavigationController.current)await NavigationController.go(NavigationController.current,false);
   }catch(e){await persist();PopupService.error(e.message)}
+}
+async function autoSyncPending(){
+  const role=SupabaseSyncService.profile?.role;
+  if(autoSyncInFlight||!navigator.onLine||AuthService.offlineSession||!['accountant','cashier'].includes(role))return false;
+  const count=(state.syncQueue||[]).filter(q=>q.status==='pending').length;if(!count)return false;
+  autoSyncInFlight=true;
+  try{
+    const result=await SupabaseSyncService.syncQueue(state);
+    await refreshStaffCloud({quiet:true});
+    await persist();
+    PopupService.success('Connection restored — '+result.count+' offline record(s) synchronized automatically.');
+    window.dispatchEvent(new CustomEvent('umeed:auto-synced',{detail:result}));
+    return true;
+  }catch(e){
+    await persist();
+    PopupService.warning('Automatic sync paused: '+e.message+' Pending data is still محفوظ locally.');
+    return false;
+  }finally{autoSyncInFlight=false}
 }
 async function setSelectedSlip(id){state.selectedSlipId=id;await persist()}
 async function setSelectedCounterSale(id){state.selectedCounterSaleId=id;await persist()}
@@ -167,9 +210,18 @@ async function bootAuthenticated(expectedMode=null){
   AppContext.refreshCloud=refreshCloud;AppContext.syncPending=syncPending;AppContext.signOut=signOut;AppContext.setSelectedSlip=setSelectedSlip;AppContext.setSelectedCounterSale=setSelectedCounterSale;
   await refreshCloud({quiet:true});
   await NavigationController.init({profile:SupabaseSyncService.profile,onRefresh:async()=>{await refreshCloud();await NavigationController.go(NavigationController.current,false)},onSync:syncPending});
-  updateConnection();setTimeout(()=>maybeDefaulterAlert(),350);
+  updateConnection();
+  if(['accountant','cashier'].includes(SupabaseSyncService.profile?.role)&&navigator.onLine)setTimeout(()=>autoSyncPending(),450);
+  setTimeout(()=>maybeDefaulterAlert(),350);
 }
-window.addEventListener('online',async()=>{updateConnection();if(AuthService.offlineSession){try{await AuthService.refresh();PopupService.info('Online again. Login token refreshed.');updateConnection()}catch{PopupService.warning('Reconnect requires sign-in before cloud sync.')}}});
+window.addEventListener('online',async()=>{
+  updateConnection();
+  if(AuthService.offlineSession){
+    try{await AuthService.refresh();AuthService.offlineSession=false;updateConnection()}
+    catch{PopupService.warning('Reconnect requires sign-in before cloud sync.');return}
+  }
+  await autoSyncPending();
+});
 window.addEventListener('offline',updateConnection);
 if('serviceWorker'in navigator&&['http:','https:'].includes(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});
 
