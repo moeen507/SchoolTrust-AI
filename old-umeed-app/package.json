@@ -1,14 +1,7 @@
 {
-  "name": "umeed-fee-ledger-mobile-pwa",
-  "version": "1.0.0",
-  "private": true,
-  "scripts": {
-    "android:add": "cap add android",
-    "android:sync": "cap sync android"
-  },
-  "dependencies": {
-    "@capacitor/android": "8.0.2",
-    "@capacitor/cli": "8.0.2",
-    "@capacitor/core": "8.0.2"
-  }
+  "name":"umeed-premium-fee-ledger",
+  "version":"2.1.0",
+  "private":true,
+  "scripts":{"mobile:add":"cap add android","mobile:sync":"cap sync android"},
+  "dependencies":{"@capacitor/android":"8.0.2","@capacitor/cli":"8.0.2","@capacitor/core":"8.0.2","xlsx":"0.18.5"}
 }
