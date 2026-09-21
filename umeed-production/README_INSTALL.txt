@@ -29,6 +29,7 @@ For a clean database run:
 006_v32_auto_roll_multimonth.sql
 007_v32_student_accounts_portal.sql
 008_v32_refund_portal_status.sql
+009_v32_security_index_hardening.sql
 
 EDGE FUNCTIONS
 Deploy:
