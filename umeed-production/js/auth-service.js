@@ -26,6 +26,13 @@ export const AuthService={
     const session={access_token:data.access_token,refresh_token:data.refresh_token,expires_at:Date.now()+Number(data.expires_in||3600)*1000,user:data.user};
     this.session=session;this.offlineSession=false;await StorageService.saveSession(session);return session;
   },
+  async reauthenticate(password){
+    if(!navigator.onLine)throw new Error('Internet connection is required to verify your password.');
+    const email=this.session?.user?.email;if(!email)throw new Error('Current user email is unavailable.');
+    const data=await request('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify({email,password})});
+    if(data.user?.id!==this.session?.user?.id)throw new Error('Password verification failed.');
+    return true;
+  },
   async refresh(){
     if(!this.session?.refresh_token)throw new Error('No refresh token.');
     const data=await request('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:JSON.stringify({refresh_token:this.session.refresh_token})});

@@ -12,14 +12,15 @@ async function set(key,value){const db=await openDb();return new Promise((resolv
 async function remove(key){const db=await openDb();return new Promise((resolve,reject)=>{const tx=db.transaction(CONFIG.cacheStore,'readwrite');tx.objectStore(CONFIG.cacheStore).delete(key);tx.oncomplete=()=>resolve(true);tx.onerror=()=>reject(tx.error)})}
 export function emptyCache(){
   return {
-    students:[],classes:[],classFeeSchedule:[],feeEntries:[],refunds:[],activityLog:[],profile:null,
-    catalogItems:[],counterSales:[],counterSaleItems:[],
+    students:[],classes:[],classFeeSchedule:[],feeEntries:[],feeReceipts:[],feeReceiptMonths:[],
+    refunds:[],activityLog:[],profile:null,catalogItems:[],counterSales:[],counterSaleItems:[],
     settings:{
       school_name:'UMEED Education System',school_phone:'',school_address:'',
-      monthly_fee:2000,annual_fund:2150,slip_prefix:'UES',next_receipt_no:1,
+      monthly_fee:2000,annual_fund:2150,
       fee_receipt_prefix:'UES',next_fee_receipt_no:1,
       counter_receipt_prefix:'SC',next_counter_receipt_no:1,
-      prepared_by:'Admin/Cashier'
+      next_student_roll_no:1,
+      slip_prefix:'UES',next_receipt_no:1,prepared_by:'Admin/Cashier'
     },
     syncQueue:[],lastSync:null,lastCloudRefresh:null,selectedSlipId:null,selectedCounterSaleId:null
   };
@@ -31,10 +32,10 @@ export const StorageService={
   saveSession:session=>set(CONFIG.sessionKey,session),
   clearSession:()=>remove(CONFIG.sessionKey),
   async clearCache(){return set(CONFIG.cacheKey,emptyCache())},
-  async exportBackup(cache){return {schemaVersion:31,exportedAt:new Date().toISOString(),...cache}},
+  async exportBackup(cache){return {schemaVersion:32,exportedAt:new Date().toISOString(),...cache}},
   validateBackup(data){
     if(!data||typeof data!=='object')throw new Error('Invalid backup file.');
-    for(const k of ['students','feeEntries','refunds','activityLog'])if(!Array.isArray(data[k]))throw new Error('Backup is missing '+k+'.');
+    for(const k of ['students','refunds','activityLog'])if(!Array.isArray(data[k]))throw new Error('Backup is missing '+k+'.');
     return true
   }
 };

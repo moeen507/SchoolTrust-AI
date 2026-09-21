@@ -12,7 +12,9 @@ function mergeDefaults(settings={}){
   return {
     school_name:'UMEED Education System',school_phone:'',school_address:'',
     monthly_fee:CONFIG.monthlyFee,annual_fund:CONFIG.annualFund,
-    fee_receipt_prefix:'UES',next_fee_receipt_no:1,counter_receipt_prefix:'SC',next_counter_receipt_no:1,
+    fee_receipt_prefix:'UES',next_fee_receipt_no:1,
+    counter_receipt_prefix:'SC',next_counter_receipt_no:1,
+    next_student_roll_no:1,
     slip_prefix:'UES',next_receipt_no:1,prepared_by:'Admin/Cashier',
     ...settings,monthly_fee:CONFIG.monthlyFee,annual_fund:CONFIG.annualFund
   };
@@ -33,7 +35,8 @@ async function refreshCloud({quiet=false}={}){
     state.profile=SupabaseSyncService.profile;
     const cloud=await SupabaseSyncService.refreshAll();
     state.students=cloud.students||[];state.classes=cloud.classes||[];state.classFeeSchedule=cloud.classFeeSchedule||[];
-    state.feeEntries=cloud.feeEntries||[];state.refunds=cloud.refunds||[];state.activityLog=cloud.activityLog||[];
+    state.feeEntries=cloud.feeEntries||[];state.feeReceipts=cloud.feeReceipts||[];state.feeReceiptMonths=cloud.feeReceiptMonths||[];
+    state.refunds=cloud.refunds||[];state.activityLog=cloud.activityLog||[];
     state.catalogItems=cloud.catalogItems||[];state.counterSales=cloud.counterSales||[];state.counterSaleItems=cloud.counterSaleItems||[];
     state.settings=mergeDefaults(cloud.settings||state.settings);
     overlayPending();state.lastCloudRefresh=new Date().toISOString();await persist();
@@ -78,7 +81,7 @@ async function bootAuthenticated(){
   AppContext.state=state;AppContext.profile=SupabaseSyncService.profile;AppContext.navigate=r=>NavigationController.go(r);AppContext.save=persist;
   AppContext.refreshCloud=refreshCloud;AppContext.syncPending=syncPending;AppContext.signOut=signOut;AppContext.setSelectedSlip=setSelectedSlip;AppContext.setSelectedCounterSale=setSelectedCounterSale;
   await refreshCloud({quiet:true});
-  await NavigationController.init({onRefresh:async()=>{await refreshCloud();await NavigationController.go(NavigationController.current,false)},onSync:syncPending});
+  await NavigationController.init({profile:SupabaseSyncService.profile,onRefresh:async()=>{await refreshCloud();await NavigationController.go(NavigationController.current,false)},onSync:syncPending});
   updateConnection();
 }
 window.addEventListener('online',async()=>{updateConnection();if(AuthService.offlineSession){try{await AuthService.refresh();PopupService.info('Online again. Login token refreshed.');updateConnection()}catch{PopupService.warning('Reconnect requires sign-in before cloud sync.')}}});

@@ -1,44 +1,38 @@
-UMEED EDUCATION SYSTEM — STUDENT FINANCE & SERVICES v3.1.0
+UMEED EDUCATION SYSTEM — STUDENT FINANCE & SERVICES v3.2.0
 
 WINDOWS
-1. Install Node.js 22 LTS or newer.
-2. Open PowerShell/Command Prompt in this folder.
-3. Run:
-   npm install
-   npm run start
-4. Windows package:
-   npm run build:portable
+npm install
+npm run start
+npm run build:portable
 
 ANDROID
-1. Install Node.js 22+, JDK 21 and Android Studio.
-2. Run:
-   npm install
-   npm run mobile:add
-   npm run mobile:sync
-   npm run mobile:open
+npm install
+npm run mobile:add
+npm run mobile:sync
+npm run mobile:open
 
 CENTRAL DATABASE
 Supabase project:
 https://jqgwsgprqxfnvrmkpgyy.supabase.co
 
-The app uses only the publishable client key. No service-role key is bundled.
+For a clean database run:
+001_schema.sql
+002_rls.sql
+003_finance_rpcs.sql
+004_bootstrap_template.sql
+005_v31_student_services.sql
+006_v32_auto_roll_multimonth.sql
 
-For a clean new database, run SQL in this order:
-  sql/001_schema.sql
-  sql/002_rls.sql
-  sql/003_finance_rpcs.sql
-  sql/004_bootstrap_template.sql
-  sql/005_v31_student_services.sql
+v3.2 CORE
+- Manual Add Student uses a centrally allocated, read-only roll number.
+- Student identity requires Student Name, Parent/Guardian, Class, Roll Number, Phone/WhatsApp.
+- Fee Entry supports one month, multiple months, or all pending months in ONE Fee Slip.
+- Annual Fund installments reconcile on the same Fee Slip.
+- Fee and Syllabus+Canteen keep separate auto-increment receipt series.
+- Super Admin can create/delete Admin/Accountant/Cashier/Auditor accounts.
+- Accountant receives Daily Collection + Fee Entry + Fee Slip + Syllabus/Canteen only.
+- Student/data deletion requires password re-verification.
 
-v3.1 RECEIPT MODEL
-There are exactly TWO receipt series:
-1. Fee Entry — monthly fee, Annual Fund, fine, discount/refund workflow.
-2. Student Syllabus + Canteen — one combined counter and one shared serial.
-
-CLASS FEES
-Default monthly fee is Rs. 2,000.
-Settings can override each class by fee year.
-Fee Entry automatically fetches the student's class fee for the selected year.
-
-ANNUAL FUND
-Annual Fund remains Rs. 2,150 and is tracked separately from monthly fee, Syllabus and Canteen sales.
+SECURITY
+Only the publishable client key is shipped.
+The manage-users Edge Function keeps secret/admin credentials server-side.

@@ -1,5 +1,5 @@
 export const CONFIG=Object.freeze({
-  version:'3.1.0',
+  version:'3.2.0',
   supabaseUrl:'https://jqgwsgprqxfnvrmkpgyy.supabase.co',
   publishableKey:'sb_publishable_Cu1Ih1l5XhVS4-7mCdfUSQ_etb1v_-n',
   monthlyFee:2000,
@@ -11,11 +11,12 @@ export const CONFIG=Object.freeze({
   pageSize:50
 });
 export const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
-export const ROUTES=['dashboard','students','fee-entry','ledger','fee-slip','student-counter','d6','reports','settings'];
+export const ROUTES=['dashboard','daily-collection','students','fee-entry','ledger','fee-slip','student-counter','d6','reports','settings','users'];
 export const ROUTE_ALIASES=Object.freeze({
   starter:'students',students:'students',fee:'fee-entry','feed entry':'fee-entry','fee-entry':'fee-entry',
   ledger:'ledger','connect ledger':'ledger',slip:'fee-slip','fee-slip':'fee-slip',receipt:'fee-slip',
   store:'student-counter',syllabus:'student-counter',canteen:'student-counter','student store':'student-counter',
-  'student-counter':'student-counter',d6:'d6',database:'d6',records:'d6',reports:'reports',
+  'student-counter':'student-counter','daily collection':'daily-collection','daily-collection':'daily-collection',collection:'daily-collection',
+  users:'users','user management':'users',d6:'d6',database:'d6',records:'d6',reports:'reports',
   settings:'settings',dashboard:'dashboard'
 });

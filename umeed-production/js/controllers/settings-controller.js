@@ -3,6 +3,7 @@ import {SettingsService} from '../settings-service.js';
 import {ActivityService} from '../activity-service.js';
 import {SupabaseSyncService} from '../supabase-sync-service.js';
 import {PopupService} from '../popup-service.js';
+import {AuthService} from '../auth-service.js';
 import {CONFIG} from '../config.js';
 import {escapeHtml} from '../dom-utils.js';
 
@@ -14,6 +15,7 @@ function fill(){
   document.getElementById('settings-school-phone').value=s.school_phone||'';
   document.getElementById('settings-school-address').value=s.school_address||'';
   document.getElementById('settings-annual-fund').value=CONFIG.annualFund;
+  document.getElementById('settings-next-roll').value=s.next_student_roll_no||1;
   document.getElementById('settings-prepared-by').value=s.prepared_by||'Admin/Cashier';
   document.getElementById('settings-fee-prefix').value=s.fee_receipt_prefix||s.slip_prefix||'UES';
   document.getElementById('settings-fee-next').value=s.next_fee_receipt_no||s.next_receipt_no||1;
@@ -43,10 +45,20 @@ function editCatalog(id){
   document.getElementById('catalog-channel').value=i.channel;document.getElementById('catalog-code').value=i.item_code||'';
   document.getElementById('catalog-name').value=i.item_name;document.getElementById('catalog-price').value=i.unit_price;document.getElementById('catalog-save').textContent='Update Item';
 }
+function askPassword(title){
+  return new Promise(resolve=>{
+    const root=document.getElementById('popup-root'),back=document.createElement('div');back.className='popup-backdrop';const box=document.createElement('div');box.className='popup';
+    box.innerHTML='<h3>'+escapeHtml(title)+'</h3><p>Enter your current password to authorize this destructive action.</p><div class="form-group"><label>Current Password</label><input id="settings-reauth" type="password" autocomplete="current-password"></div><div class="actions" style="margin-top:14px"><button id="settings-reauth-ok" class="btn btn-red">Verify & Continue</button><button id="settings-reauth-cancel" class="btn btn-ghost">Cancel</button></div>';
+    back.appendChild(box);root.appendChild(back);document.getElementById('settings-reauth').focus();
+    document.getElementById('settings-reauth-cancel').onclick=()=>{back.remove();resolve(null)};
+    document.getElementById('settings-reauth-ok').onclick=()=>{const v=document.getElementById('settings-reauth').value;back.remove();resolve(v)};
+  });
+}
 async function removeCatalog(id){
   const i=AppContext.state.catalogItems.find(x=>x.id===id);if(!i)return;
-  if(!await PopupService.confirm('Remove Catalog Item','Remove '+i.item_name+' from the active catalog?','Remove'))return;
-  try{await SettingsService.saveCatalogItem(AppContext.state,{...i,status:'deleted'});await AppContext.save();renderCatalog();PopupService.success('Catalog item removed.')}catch(e){PopupService.error(e.message)}
+  if(!await PopupService.confirm('Remove Catalog Item','Remove '+i.item_name+' from the active catalog?','Continue'))return;
+  const password=await askPassword('Password Verification');if(!password)return;
+  try{await AuthService.reauthenticate(password);await SettingsService.saveCatalogItem(AppContext.state,{...i,status:'deleted'});await AppContext.save();renderCatalog();PopupService.success('Catalog item removed.')}catch(e){PopupService.error(e.message)}
 }
 export default{
   async init(){
@@ -58,8 +70,7 @@ export default{
           school_address:document.getElementById('settings-school-address').value,fee_receipt_prefix:document.getElementById('settings-fee-prefix').value,
           counter_receipt_prefix:document.getElementById('settings-counter-prefix').value,prepared_by:document.getElementById('settings-prepared-by').value
         });
-        await ActivityService.log(AppContext.state,{action:'settings_saved',entity_type:'settings',message:'School settings updated'});
-        await AppContext.save();fill();PopupService.success('School settings saved.');
+        await ActivityService.log(AppContext.state,{action:'settings_saved',entity_type:'settings',message:'School settings updated'});await AppContext.save();fill();PopupService.success('School settings saved.');
       }catch(err){PopupService.error(err.message)}
     };
     document.getElementById('settings-save-prefixes').onclick=()=>document.getElementById('settings-form').requestSubmit();

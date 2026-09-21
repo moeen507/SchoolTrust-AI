@@ -1,8 +1,8 @@
 {
   "name":"umeed-fee-management-production",
-  "version":"3.1.0",
+  "version":"3.2.0",
   "private":true,
-  "description":"UMEED Education System centralized fee, syllabus and canteen management for Windows, Chrome/PWA and Android.",
+  "description":"UMEED Education System centralized student finance, syllabus and canteen management for Windows, Chrome/PWA and Android.",
   "main":"main.js",
   "scripts":{
     "prepare:web":"node scripts/prepare-web.mjs",
@@ -21,8 +21,8 @@
     "asar":true,
     "directories":{"output":"dist","buildResources":"assets"},
     "files":["index.html","app-shell.html","pages/**/*","js/**/*","css/**/*","assets/**/*","vendor/**/*","main.js","preload.js","manifest.webmanifest","sw.js","package.json"],
-    "win":{"icon":"assets/icon.ico","target":[{"target":"portable","arch":["x64"]},{"target":"nsis","arch":["x64"]}],"artifactName":"UMEED-Fee-Management-v3.1.0-x64.exe"},
-    "portable":{"artifactName":"UMEED-Fee-Management-Portable-v3.1.0-x64.exe"},
+    "win":{"icon":"assets/icon.ico","target":[{"target":"portable","arch":["x64"]},{"target":"nsis","arch":["x64"]}],"artifactName":"UMEED-Fee-Management-v3.2.0-x64.exe"},
+    "portable":{"artifactName":"UMEED-Fee-Management-Portable-v3.2.0-x64.exe"},
     "nsis":{"oneClick":false,"allowToChangeInstallationDirectory":true,"createDesktopShortcut":true,"createStartMenuShortcut":true,"shortcutName":"UMEED Fee Management","perMachine":false}
   }
 }

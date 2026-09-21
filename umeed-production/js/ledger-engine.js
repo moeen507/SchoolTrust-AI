@@ -10,27 +10,46 @@ export function getClassMonthlyFee(state,classId,year=new Date().getFullYear()){
   return n(cls?.default_monthly_fee??CONFIG.monthlyFee);
 }
 
+function receiptLinesForStudent(state,studentId,year){
+  const headers=(state.feeReceipts||[]).filter(r=>r.student_id===studentId&&Number(r.fee_year)===Number(year)&&active(r));
+  const headerMap=new Map(headers.map(r=>[r.id,r]));
+  const lines=(state.feeReceiptMonths||[]).filter(m=>m.student_id===studentId&&Number(m.fee_year)===Number(year)&&headerMap.has(m.receipt_id)).map(m=>{
+    const h=headerMap.get(m.receipt_id);
+    return {...m,receipt_no:h.receipt_no,payment_date:h.payment_date,created_at:h.created_at,source_device:h.source_device,_receipt_id:h.id,_type:'fee_line'};
+  });
+  return {headers,lines};
+}
+
 export function computeStudentLedger(state,studentId,year=new Date().getFullYear()){
   const student=state.students.find(s=>s.id===studentId&&String(s.status||'active').toLowerCase()!=='deleted');
   if(!student)return null;
+
   const scheduledFee=getClassMonthlyFee(state,student.class_id,year);
-  const entries=state.feeEntries.filter(e=>e.student_id===studentId&&Number(e.fee_year)===Number(year)&&active(e));
-  const refunds=state.refunds.filter(r=>r.student_id===studentId&&Number(r.fee_year||new Date(r.refund_date||r.created_at).getFullYear())===Number(year)&&active(r));
+  const legacy=(state.feeEntries||[]).filter(e=>e.student_id===studentId&&Number(e.fee_year)===Number(year)&&active(e)).map(e=>({...e,_type:'legacy_fee'}));
+  const modern=receiptLinesForStudent(state,studentId,year);
+  const monthlyRows=[...legacy,...modern.lines];
+  const refunds=(state.refunds||[]).filter(r=>r.student_id===studentId&&Number(r.fee_year||new Date(r.refund_date||r.created_at).getFullYear())===Number(year)&&active(r));
+
   const monthly=MONTHS.map((name,i)=>{
-    const month=i+1,rows=entries.filter(e=>Number(e.fee_month)===month);
+    const month=i+1,rows=monthlyRows.filter(e=>Number(e.fee_month)===month);
     const fine=rows.reduce((a,r)=>a+n(r.fine),0);
     const cash=rows.reduce((a,r)=>a+n(r.cash_paid),0);
     const discount=rows.reduce((a,r)=>a+n(r.discount),0);
-    const baseFee=rows.length?n(rows[0].monthly_fee??scheduledFee):scheduledFee;
+    const snap=rows.map(r=>n(r.monthly_fee)).filter(v=>v>0);
+    const baseFee=snap.length?snap[0]:scheduledFee;
     const expected=baseFee+fine;
     const covered=cash+discount;
     const pending=Math.max(expected-covered,0);
     const status=pending<=0?'Clear':covered>0?'Partial':'Pending';
     return {month,name,rows,baseFee,expected,cash,discount,fine,covered,pending,status};
   });
+
   const annualExpected=n(state.settings?.annual_fund??CONFIG.annualFund);
-  const annualPaid=entries.reduce((a,r)=>a+n(r.annual_fund_paid),0);
+  const legacyAnnual=legacy.reduce((a,r)=>a+n(r.annual_fund_paid),0);
+  const modernAnnual=modern.headers.reduce((a,r)=>a+n(r.annual_fund_paid),0);
+  const annualPaid=legacyAnnual+modernAnnual;
   const annualPending=Math.max(annualExpected-annualPaid,0);
+
   const totalMonthlyCash=monthly.reduce((a,m)=>a+m.cash,0);
   const totalDiscount=monthly.reduce((a,m)=>a+m.discount,0);
   const totalFine=monthly.reduce((a,m)=>a+m.fine,0);
@@ -38,13 +57,30 @@ export function computeStudentLedger(state,studentId,year=new Date().getFullYear
   const totalRefund=refunds.reduce((a,r)=>a+n(r.amount||r.refund_amount),0);
   const totalCash=totalMonthlyCash+annualPaid;
   const totalPending=monthlyPending+annualPending;
+
+  const receiptTransactions=modern.headers.map(h=>{
+    const lines=modern.lines.filter(l=>l.receipt_id===h.id);
+    return {
+      ...h,
+      _type:'fee_receipt',
+      cash_paid:lines.reduce((a,l)=>a+n(l.cash_paid),0),
+      discount:lines.reduce((a,l)=>a+n(l.discount),0),
+      fine:lines.reduce((a,l)=>a+n(l.fine),0),
+      months:lines.map(l=>Number(l.fee_month)),
+      month_labels:lines.map(l=>MONTHS[Number(l.fee_month)-1]).join(', ')
+    };
+  });
+
   const transactions=[
-    ...entries.map(e=>({...e,_type:'fee'})),
+    ...legacy,
+    ...receiptTransactions,
     ...refunds.map(r=>({...r,_type:'refund'}))
   ].sort((a,b)=>String(b.payment_date||b.refund_date||b.created_at).localeCompare(String(a.payment_date||a.refund_date||a.created_at)));
+
   return {
-    student,year,classMonthlyFee:scheduledFee,annualExpected,monthly,annualPaid,annualPending,totalMonthlyCash,totalCash,totalDiscount,totalFine,totalRefund,
-    monthlyPending,totalPending,netCash:totalCash-totalRefund,
+    student,year,classMonthlyFee:scheduledFee,annualExpected,monthly,annualPaid,annualPending,
+    totalMonthlyCash,totalCash,totalDiscount,totalFine,totalRefund,monthlyPending,totalPending,
+    netCash:totalCash-totalRefund,
     paidMonths:monthly.filter(m=>m.status==='Clear').length,
     partialMonths:monthly.filter(m=>m.status==='Partial').length,
     pendingMonths:monthly.filter(m=>m.status==='Pending').length,
@@ -52,6 +88,7 @@ export function computeStudentLedger(state,studentId,year=new Date().getFullYear
     transactions
   };
 }
+
 export function computeDashboard(state,year=new Date().getFullYear()){
   const ledgers=state.students.filter(s=>String(s.status||'active').toLowerCase()!=='deleted').map(s=>computeStudentLedger(state,s.id,year)).filter(Boolean);
   const liveSales=(state.counterSales||[]).filter(s=>String(s.status||'active')!=='reversed');

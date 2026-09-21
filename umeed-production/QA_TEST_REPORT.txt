@@ -1,35 +1,39 @@
-UMEED v3.1.0 — QA / ACCEPTANCE STATUS
+UMEED v3.2.0 — QA / ACCEPTANCE STATUS
 
-STATIC LOGIC
-[PASS] Two active receipt series only
-[PASS] Fee series separate from Syllabus+Canteen
-[PASS] Syllabus and Canteen share one counter serial
-[PASS] Class fee schedule supports year + class
-[PASS] Default class fee Rs. 2,000
-[PASS] Annual Fund remains separate
-[PASS] Fee Entry uses central LedgerEngine
-[PASS] Syllabus/Canteen does not alter Fee outstanding
-[PASS] Counter sale RPC is idempotent by client UUID
-[PASS] Receipt allocation is atomic
-[PASS] No dummy students, catalog items or sales inserted
-[PASS] Mobile route includes combined Syllabus+Canteen counter
-[PASS] Settings exposes Fee and combined Counter series only
+STATIC / ARCHITECTURE
+[PASS] Student core identity uses 5 fields
+[PASS] Manual student roll is read-only and centrally auto-incremented
+[PASS] Imported numeric rolls reconcile next roll
+[PASS] Global active roll uniqueness per organization
+[PASS] Two receipt series only: Fee and shared Syllabus+Canteen
+[PASS] Multi-month Fee Slip model
+[PASS] Full-year/all-pending month selection
+[PASS] Annual Fund installment reconciliation
+[PASS] Class/year fee schedule still used
+[PASS] Discount remains non-cash
+[PASS] Refunds remain separate
+[PASS] Role-based navigation
+[PASS] Super Admin server-side user management function
+[PASS] Accountant Daily Collection workspace
+[PASS] Password reauthentication for destructive actions
+[PASS] Legacy fee records remain readable
+[PASS] No dummy students/sales/catalog rows inserted
 
-LIVE PROJECT STATE AT v3.1 UPDATE
-- 14 class-fee schedule rows for 2026
-- 0 students
-- 0 catalog items
-- 0 counter sales
+BUILD PIPELINE
+[PENDING until release build] JavaScript syntax gate
+[PENDING until release build] Android Gradle build
+[PENDING until release build] Windows Electron packaging
+[PENDING until release build] Source ZIP + SHA256
 
-REQUIRES REAL-DATA ACCEPTANCE TESTING
-[PENDING] Import real students
-[PENDING] Verify class-specific fee changes with real classes
-[PENDING] Partial monthly fee
+REAL-DATA ACCEPTANCE
+[PENDING] Import real student list
+[PENDING] Confirm first auto roll after import
+[PENDING] Multi-month payment on real student
+[PENDING] Full-year payment
+[PENDING] Partial month + later balance payment
 [PENDING] Annual Fund installments
-[PENDING] Fee duplicate/race test across Windows + Android
-[PENDING] Add real Syllabus catalog
-[PENDING] Add real Canteen catalog
-[PENDING] Shared Syllabus/Canteen serial concurrency test
-[PENDING] Offline queue replay
-[PENDING] A5 physical print test
-[PENDING] Parent WhatsApp validation
+[PENDING] Concurrent receipt test Windows + Android
+[PENDING] Create Accountant from Super Admin page
+[PENDING] Accountant access restriction test
+[PENDING] Password-protected deletion test
+[PENDING] A5 physical printer test
