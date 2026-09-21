@@ -20,6 +20,16 @@ WORKDIR /app
 COPY old-umeed-app /app
 RUN npm install --no-audit --no-fund
 RUN mkdir -p www/vendor && cp node_modules/xlsx/dist/xlsx.full.min.js www/vendor/xlsx.full.min.js
+RUN cp www/js/app.js /tmp/app.mjs \
+ && cp www/js/storage.js /tmp/storage.mjs \
+ && cp www/js/ledger.js /tmp/ledger.mjs \
+ && cp www/js/sync.js /tmp/sync.mjs \
+ && cp www/js/config.js /tmp/config.mjs \
+ && node --check /tmp/app.mjs \
+ && node --check /tmp/storage.mjs \
+ && node --check /tmp/ledger.mjs \
+ && node --check /tmp/sync.mjs \
+ && node --check /tmp/config.mjs
 RUN npx cap add android \
  && npx cap sync android \
  && chmod +x android/gradlew \
