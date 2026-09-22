@@ -1,22 +1,59 @@
 <div class="app-shell">
-<header class="topbar">
-  <a class="brand" href="#" data-route="dashboard">
-    <img src="assets/logo.svg" alt="UMEED">
-    <span><b>UMEED EDUCATION SYSTEM</b><small id="role-label">Student Finance & Services</small></span>
-  </a>
-  <nav id="desktop-nav" class="desktop-nav"></nav>
+<header class="topbar premium-topbar">
+  <div class="topbar-left">
+    <button class="menu-trigger" id="mobile-menu-button" aria-label="Open navigation" title="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+    <a class="brand premium-brand" href="#" data-route="dashboard">
+      <img src="assets/logo.svg" alt="UMEED">
+      <span><b>UMEED EDUCATION SYSTEM</b><small id="role-label">Student Finance & Services</small></span>
+    </a>
+  </div>
+  <nav id="desktop-nav" class="desktop-nav" hidden></nav>
   <div class="top-actions">
-    <button class="icon-button" id="cloud-refresh" title="Refresh from Supabase" aria-label="Refresh">↻</button>
+    <button class="icon-button premium-refresh" id="cloud-refresh" title="Refresh from Supabase" aria-label="Refresh">↻</button>
     <span id="connection-pill" class="connection-pill">Offline</span>
-    <button class="icon-button mobile-only" id="mobile-menu-button" aria-label="Open menu">☰</button>
   </div>
 </header>
-<aside id="mobile-drawer" class="mobile-drawer" aria-hidden="true">
-  <div class="drawer-head"><div><b>UMEED</b><small id="drawer-role" style="display:block;color:#9a8e7e"></small></div><button class="icon-button" id="drawer-close">×</button></div>
-  <nav id="drawer-nav"></nav>
-  <div class="drawer-sync"><div><small>Offline queue</small><strong id="queue-count">0</strong></div><button class="btn btn-gold" id="manual-sync-button">Sync Pending</button></div>
+
+<aside id="mobile-drawer" class="mobile-drawer premium-drawer" aria-hidden="true">
+  <div class="drawer-head premium-drawer-head">
+    <div class="drawer-brand-block">
+      <img src="assets/logo.svg" alt="UMEED">
+      <div>
+        <b>UMEED</b>
+        <span>Education System</span>
+      </div>
+    </div>
+    <button class="icon-button drawer-close-button" id="drawer-close" aria-label="Close menu">×</button>
+  </div>
+
+  <div class="drawer-user-card">
+    <div class="drawer-avatar">U</div>
+    <div>
+      <small>Signed in as</small>
+      <strong id="drawer-role">User</strong>
+    </div>
+    <span class="drawer-live-dot" title="Centralized system"></span>
+  </div>
+
+  <div class="drawer-section-label">Navigation</div>
+  <nav id="drawer-nav" class="premium-drawer-nav"></nav>
+
+  <div class="drawer-sync premium-drawer-sync">
+    <div class="drawer-sync-meta">
+      <span><small>Offline Queue</small><strong id="queue-count">0</strong></span>
+      <span class="drawer-sync-caption">Central Supabase</span>
+    </div>
+    <button class="btn btn-gold" id="manual-sync-button">Sync Pending</button>
+  </div>
 </aside>
-<div id="drawer-backdrop" class="drawer-backdrop"></div>
-<main class="main"><div id="page-host" class="page-host"></div></main>
+
+<div id="drawer-backdrop" class="drawer-backdrop" aria-hidden="true"></div>
+
+<main class="main premium-main">
+  <div id="page-host" class="page-host"></div>
+</main>
+
 <nav id="mobile-dock" class="mobile-dock"></nav>
 </div>

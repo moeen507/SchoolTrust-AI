@@ -24,8 +24,16 @@ const controllers={
  users:()=>import('./controllers/users-controller.js'),
  'student-portal':()=>import('./controllers/student-portal-controller.js')
 };
-let activeController=null,role='accountant',allowed=[];
-function roleName(r){return r==='owner'||r==='super_admin'?'Super Admin':r==='admin'?'Admin':r==='accountant'?'Accountant':r==='cashier'?'Cashier':r==='auditor'?'Auditor':r==='student'?'Student':r}
+let activeController=null,role='accountant',allowed=[],escHandler=null;
+
+function roleName(r){
+  return r==='owner'||r==='super_admin'?'Super Admin':
+    r==='admin'?'Admin':
+    r==='accountant'?'Accountant':
+    r==='cashier'?'Cashier':
+    r==='auditor'?'Auditor':
+    r==='student'?'Student':r;
+}
 function routesFor(r){
   if(r==='owner'||r==='super_admin')return ['dashboard','daily-collection','defaulters','students','fee-entry','ledger','fee-slip','student-counter','d6','reports','settings','users'];
   if(r==='admin')return ['dashboard','daily-collection','defaulters','students','fee-entry','ledger','fee-slip','student-counter','d6','reports','settings'];
@@ -47,10 +55,22 @@ async function loadPage(route){
   if(!response.ok)throw new Error('Unable to load '+route+' page.');
   host.innerHTML=await response.text();
   if(activeController?.destroy)await activeController.destroy();
-  const mod=await controllers[route]();activeController=mod.default||mod;if(activeController?.init)await activeController.init();
+  const mod=await controllers[route]();activeController=mod.default||mod;
+  if(activeController?.init)await activeController.init();
 }
-function closeDrawer(){document.getElementById('mobile-drawer')?.classList.remove('open');document.getElementById('drawer-backdrop')?.classList.remove('show');document.getElementById('mobile-drawer')?.setAttribute('aria-hidden','true')}
-function openDrawer(){document.getElementById('mobile-drawer')?.classList.add('open');document.getElementById('drawer-backdrop')?.classList.add('show');document.getElementById('mobile-drawer')?.setAttribute('aria-hidden','false')}
+function closeDrawer(){
+  const drawer=document.getElementById('mobile-drawer'),backdrop=document.getElementById('drawer-backdrop');
+  drawer?.classList.remove('open');backdrop?.classList.remove('show');
+  drawer?.setAttribute('aria-hidden','true');backdrop?.setAttribute('aria-hidden','true');
+  document.body.classList.remove('drawer-open');
+}
+function openDrawer(){
+  const drawer=document.getElementById('mobile-drawer'),backdrop=document.getElementById('drawer-backdrop');
+  drawer?.classList.add('open');backdrop?.classList.add('show');
+  drawer?.setAttribute('aria-hidden','false');backdrop?.setAttribute('aria-hidden','false');
+  document.body.classList.add('drawer-open');
+  window.setTimeout(()=>drawer?.querySelector('.drawer-nav-link')?.focus(),180);
+}
 function mobileDock(){
   const dock=document.getElementById('mobile-dock');
   let routes;
@@ -60,27 +80,55 @@ function mobileDock(){
   dock.innerHTML=routes.filter(r=>allowed.includes(r)).map(r=>'<button data-route="'+r+'" class="'+(r==='fee-entry'?'dock-primary':'')+'"><span>'+ICONS[r]+'</span><small>'+LABELS[r].replace('Syllabus + Canteen','Counter').replace('Daily Collection','Collection').replace('My Student Portal','My Portal')+'</small></button>').join('')+(allowed.length>routes.length?'<button id="dock-more"><span>•••</span><small>More</small></button>':'');
   const more=document.getElementById('dock-more');if(more)more.onclick=openDrawer;
 }
+
 export const NavigationController={
-  current:null,can(route){return allowed.includes(route)},role(){return role},
+  current:null,
+  can(route){return allowed.includes(route)},
+  role(){return role},
   async init({profile,onRefresh,onSync}={}){
     role=profile?.role||'accountant';allowed=routesFor(role);
+
     const desktop=document.getElementById('desktop-nav'),drawer=document.getElementById('drawer-nav');
-    desktop.innerHTML=allowed.map(r=>'<button class="nav-link" data-route="'+r+'"><span>'+ICONS[r]+'</span> '+LABELS[r]+'</button>').join('');
-    drawer.innerHTML=allowed.map(r=>'<button class="drawer-nav-link" data-route="'+r+'"><span>'+ICONS[r]+'</span> '+LABELS[r]+'</button>').join('');
-    document.getElementById('role-label').textContent=roleName(role)+' · '+(role==='student'?'Self Service Portal':'Student Finance & Services');
-    document.getElementById('drawer-role').textContent=roleName(role);mobileDock();
-    document.addEventListener('click',e=>{const el=e.target.closest('[data-route]');if(!el)return;e.preventDefault();this.go(el.dataset.route)});
-    document.getElementById('mobile-menu-button').onclick=openDrawer;document.getElementById('drawer-close').onclick=closeDrawer;document.getElementById('drawer-backdrop').onclick=closeDrawer;
+    if(desktop)desktop.innerHTML='';
+    drawer.innerHTML=allowed.map(r=>'<button class="drawer-nav-link" data-route="'+r+'"><span class="drawer-nav-icon">'+ICONS[r]+'</span><span>'+LABELS[r]+'</span><i>›</i></button>').join('');
+
+    const prettyRole=roleName(role);
+    document.getElementById('role-label').textContent=prettyRole+' · '+(role==='student'?'Self Service Portal':'Student Finance & Services');
+    document.getElementById('drawer-role').textContent=prettyRole;
+    mobileDock();
+
+    document.addEventListener('click',e=>{
+      const el=e.target.closest('[data-route]');
+      if(!el)return;
+      e.preventDefault();
+      this.go(el.dataset.route);
+    });
+
+    document.getElementById('mobile-menu-button').onclick=openDrawer;
+    document.getElementById('drawer-close').onclick=closeDrawer;
+    document.getElementById('drawer-backdrop').onclick=closeDrawer;
+
+    if(escHandler)document.removeEventListener('keydown',escHandler);
+    escHandler=e=>{if(e.key==='Escape')closeDrawer()};
+    document.addEventListener('keydown',escHandler);
+
     const refresh=document.getElementById('cloud-refresh'),sync=document.getElementById('manual-sync-button');
-    refresh.onclick=()=>onRefresh?.();sync.onclick=()=>onSync?.();
-    if(role==='student'){sync.style.display='none'}
+    refresh.onclick=()=>onRefresh?.();
+    sync.onclick=()=>onSync?.();
+    if(role==='student')sync.style.display='none';
+
     const defaultRoute=role==='student'?'student-portal':allowed.includes('dashboard')?'dashboard':'daily-collection';
     await this.go(location.hash.replace(/^#/,'')||defaultRoute,false);
   },
-  async go(route,updateHash=true){route=normalize(route);this.current=route;if(updateHash)history.replaceState(null,'','#'+route);setActive(route);closeDrawer();await loadPage(route);return route},
+  async go(route,updateHash=true){
+    route=normalize(route);this.current=route;
+    if(updateHash)history.replaceState(null,'','#'+route);
+    setActive(route);closeDrawer();await loadPage(route);return route;
+  },
   updateConnection({online,pending=0}){
     const pill=document.getElementById('connection-pill');if(!pill)return;
-    pill.textContent=online?(pending?'Online · '+pending+' pending':'Online'):'Offline · '+pending+' pending';pill.className='connection-pill '+(online?(pending?'pending':'online'):'');
+    pill.textContent=online?(pending?'Online · '+pending+' pending':'Online'):'Offline · '+pending+' pending';
+    pill.className='connection-pill '+(online?(pending?'pending':'online'):'');
     const count=document.getElementById('queue-count');if(count)count.textContent=String(pending);
   }
 };
