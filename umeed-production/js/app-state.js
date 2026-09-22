@@ -5,7 +5,7 @@ import {SupabaseSyncService} from './supabase-sync-service.js';
 import {PopupService} from './popup-service.js';
 import {NavigationController} from './navigation-controller.js';
 import {ReportsEngine} from './reports-engine.js';
-import {AppContext} from './app-context.js';
+import {AppContext} from './app-context.js';\nimport {ThemeService} from './theme-service.js';
 
 let state=emptyCache();
 let autoSyncInFlight=false;
@@ -141,7 +141,7 @@ async function signOut(){
   document.getElementById('app-root').innerHTML='';showLogin();
 }
 function loginMarkup(){
-  return '<main class="login-shell"><section class="login-card role-login-card">'+
+  return '<main class="login-shell"><button class="theme-toggle login-theme-toggle" data-theme-toggle type="button" aria-label="Toggle appearance"><span data-theme-icon>☀</span><span data-theme-label>White</span></button><section class="login-card role-login-card">'+
   '<div class="login-brand"><img src="assets/logo.svg" alt="UMEED"><h1>UMEED EDUCATION SYSTEM</h1><p>Centralized Student Finance & Services</p></div>'+
   '<div id="login-role-step"><p class="login-step-title">Choose your login role</p><div class="login-role-grid">'+
   '<button class="login-role-card" data-login-role="admin"><b>Super Admin / Admin</b><span>Full authorized school management</span></button>'+
@@ -155,7 +155,7 @@ function loginMarkup(){
   '<p id="login-error" class="page-subtitle" style="color:#ff9aaa;text-align:center"></p></form></section></main>';
 }
 function showLogin(){
-  document.getElementById('app-root').innerHTML=loginMarkup();let mode=null;
+  document.getElementById('app-root').innerHTML=loginMarkup();ThemeService.bind(document);let mode=null;
   const roleStep=document.getElementById('login-role-step'),form=document.getElementById('login-form');
   document.querySelectorAll('[data-login-role]').forEach(btn=>btn.onclick=()=>{
     mode=btn.dataset.loginRole;roleStep.style.display='none';form.style.display='block';
@@ -205,7 +205,7 @@ async function bootAuthenticated(expectedMode=null){
     if(!state.profile){await AuthService.signOut();PopupService.error('This device has no cached profile. Connect to the internet and sign in once.');showLogin();return}
     SupabaseSyncService.profile=state.profile;
   }
-  const shell=await fetch('app-shell.html',{cache:'no-store'});document.getElementById('app-root').innerHTML=await shell.text();
+  const shell=await fetch('app-shell.html',{cache:'no-store'});document.getElementById('app-root').innerHTML=await shell.text();ThemeService.bind(document);
   AppContext.state=state;AppContext.profile=SupabaseSyncService.profile;AppContext.navigate=r=>NavigationController.go(r);AppContext.save=persist;
   AppContext.refreshCloud=refreshCloud;AppContext.syncPending=syncPending;AppContext.signOut=signOut;AppContext.setSelectedSlip=setSelectedSlip;AppContext.setSelectedCounterSale=setSelectedCounterSale;
   await refreshCloud({quiet:true});

@@ -4,7 +4,7 @@ import {ActivityService} from '../activity-service.js';
 import {SupabaseSyncService} from '../supabase-sync-service.js';
 import {PopupService} from '../popup-service.js';
 import {AuthService} from '../auth-service.js';
-import {CONFIG} from '../config.js';
+import {CONFIG} from '../config.js';\nimport {ThemeService} from '../theme-service.js';
 import {escapeHtml} from '../dom-utils.js';
 
 let editingCatalogId=null;
