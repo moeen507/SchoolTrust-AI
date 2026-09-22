@@ -1,5 +1,5 @@
 export const CONFIG=Object.freeze({
-  version:'3.2.0',
+  version:'3.2.2',
   supabaseUrl:'https://jqgwsgprqxfnvrmkpgyy.supabase.co',
   publishableKey:'sb_publishable_Cu1Ih1l5XhVS4-7mCdfUSQ_etb1v_-n',
   monthlyFee:2000,annualFund:2150,

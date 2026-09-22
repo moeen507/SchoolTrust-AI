@@ -1,8 +1,8 @@
-UMEED EDUCATION SYSTEM — NETLIFY DEPLOYABLE PWA v3.2.0
+UMEED EDUCATION SYSTEM — NETLIFY DEPLOYABLE PWA v3.2.2
 
 QUICK DEPLOY (DRAG & DROP)
 1. Use the generated file:
-   UMEED-Fee-Management-v3.2.0-Netlify-Deploy.zip
+   UMEED-Fee-Management-v3.2.2-Netlify-Deploy.zip
 2. Open Netlify Deploys / manual deploy area.
 3. Drag the ZIP into Netlify.
 4. Netlify serves index.html directly.
@@ -43,3 +43,10 @@ OFFLINE
 
 PRODUCTION NOTE
 Run real-school acceptance tests for imports, printing, WhatsApp phone data and concurrent multi-device fee entry before relying on the system for final accounting close.
+
+PREMIUM UI / UX
+- Dark Premium and White Premium modes are built into the same deploy.
+- Theme can be switched from Login, top bar, navigation drawer, or Settings.
+- Theme preference is stored locally on the device.
+- Buttons, inputs, placeholders, tables, cards, drawers and dialogs use a consistent design system.
+- Mobile controls are touch-sized and responsive; long content is protected from overlapping.

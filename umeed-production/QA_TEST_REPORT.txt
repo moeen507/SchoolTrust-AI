@@ -1,4 +1,4 @@
-UMEED v3.2.0 — QA / ACCEPTANCE STATUS
+UMEED v3.2.2 — QA / ACCEPTANCE STATUS
 
 IMPLEMENTED / STATIC REVIEW
 [PASS] Five core student identity fields
@@ -21,11 +21,17 @@ IMPLEMENTED / STATIC REVIEW
 [PASS] Two receipt series: Fee and shared Syllabus+Canteen
 [PASS] Password reauthentication for destructive actions
 [PASS] Netlify static/PWA deployment files
+[PASS] Dark Premium theme
+[PASS] White Premium theme
+[PASS] Persistent device theme preference
+[PASS] Premium button/input/table/card design system
+[PASS] Responsive anti-overlap control sizing and spacing
 [PASS] No service-role secret in frontend
 [PASS] No dummy student/sale/catalog data
 
 BUILD PIPELINE
 [PENDING until release build] JavaScript syntax gate
+[PENDING until release build] Premium UI shell smoke test
 [PENDING until release build] Netlify deploy ZIP
 [PENDING until release build] Android APK
 [PENDING until release build] Windows Electron ZIP

@@ -1,0 +1,29 @@
+UMEED v3.2.2 — PREMIUM UI / UX RELEASE
+
+VISUAL SYSTEM
+- Dark Premium and White Premium interface modes.
+- UMEED maroon + champagne-gold brand language preserved in both themes.
+- Premium cards, KPI blocks, buttons, controls, tables, modals, drawers and mobile dock.
+- Consistent hover, focus, active and disabled states.
+- Premium placeholders and read-only field treatment.
+- Improved scrollbar and selection treatment.
+- Better typography hierarchy and page-title scaling.
+
+USABILITY
+- Minimum touch/control heights.
+- Anti-overlap min-width rules for grid/form children.
+- Page-header actions wrap cleanly on mobile.
+- Mobile buttons remain usable without clipping.
+- Tables remain horizontally scrollable instead of breaking the page.
+- White theme uses dedicated readable surfaces rather than simple color inversion.
+
+THEME ACCESS
+- Login screen theme button.
+- Top-bar theme button.
+- Navigation drawer theme selector.
+- Settings > Appearance.
+- Choice persists locally on the device.
+
+NO ACCOUNTING LOGIC CHANGES
+This release changes presentation and usability only. Existing centralized Supabase accounting, role permissions,
+student portal, multi-month fee slips, two receipt series, defaulter workflow and offline sync logic remain intact.
