@@ -1,0 +1,64 @@
+name: Build UMEED Netlify Package
+
+on:
+  push:
+    branches:
+      - umeed-production-v3
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-netlify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        working-directory: umeed-production
+        run: npm install --no-audit --no-fund
+
+      - name: Prepare web/PWA
+        working-directory: umeed-production
+        run: npm run prepare:web
+
+      - name: Validate JavaScript
+        working-directory: umeed-production
+        run: |
+          set -e
+          for f in js/*.js js/controllers/*.js; do
+            cp "$f" /tmp/check.mjs
+            node --check /tmp/check.mjs
+          done
+
+      - name: Add Netlify config
+        working-directory: umeed-production
+        run: |
+          cp _redirects web/_redirects
+          cp _headers web/_headers
+          cp netlify.toml web/netlify.toml
+          cp NETLIFY_DEPLOY_README.txt web/NETLIFY_DEPLOY_README.txt
+
+      - name: Build deploy ZIP
+        working-directory: umeed-production/web
+        run: zip -qr ../../UMEED-Student-Finance-v3.2.0-Netlify.zip .
+
+      - name: SHA256
+        run: sha256sum UMEED-Student-Finance-v3.2.0-Netlify.zip > UMEED-Student-Finance-v3.2.0-Netlify-SHA256.txt
+
+      - name: Upload Netlify ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: UMEED-Student-Finance-v3.2.0-Netlify
+          path: |
+            UMEED-Student-Finance-v3.2.0-Netlify.zip
+            UMEED-Student-Finance-v3.2.0-Netlify-SHA256.txt
+          if-no-files-found: error
+          retention-days: 30
