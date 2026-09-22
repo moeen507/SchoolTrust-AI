@@ -1,11 +1,7 @@
 [build]
-  command = "npm install --no-audit --no-fund && npm run prepare:web"
-  publish = "web"
-
-[build.environment]
-  NODE_VERSION = "22"
+  publish = "."
 
 [[headers]]
   for = "/sw.js"
   [headers.values]
-    Cache-Control = "no-cache"
+    Cache-Control = "no-cache, no-store, must-revalidate"

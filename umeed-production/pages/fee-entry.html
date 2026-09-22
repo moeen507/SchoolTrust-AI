@@ -1,56 +1,46 @@
 <section data-page="fee-entry">
 <div class="page-header">
-  <div><h1 class="page-title">Fee <span>Entry</span></h1><p class="page-subtitle">Search student once, reconcile pending months + Annual Fund, and create one official Fee Slip.</p></div>
-  <div class="actions"><span class="badge gold" id="fee-series-badge">Fee Series: UES</span></div>
+  <div><h1 class="page-title">Fee <span>Entry</span></h1><p class="page-subtitle">Multi-month single-slip collection with class fee auto-fetch and Annual Fund reconciliation.</p></div>
+  <div class="actions"><span class="badge gold" id="fee-series-badge">Fee Series</span></div>
 </div>
 <div id="fee-offline-banner"></div>
 
 <div class="card">
-  <div class="card-header"><div><div class="card-title">Student Finder</div><p class="page-subtitle">Roll number, student name, parent/guardian, class or WhatsApp number.</p></div></div>
   <div class="form-grid">
-    <div class="form-group span-2"><label>Search Student / Roll</label><div class="finder-wrap"><input id="fee-student-search" autocomplete="off" placeholder="Type roll no, name, guardian, class or phone"><div id="fee-finder-results" class="finder-results"></div></div><input type="hidden" id="fee-student-id"></div>
+    <div class="form-group span-2"><label>Student / Roll Number</label><input id="fee-student-search" autocomplete="off" placeholder="Type roll number, student name or phone"></div>
+    <div class="form-group"><label>Year</label><input id="fee-year" type="number"></div>
+    <div class="form-group"><label>Payment Date</label><input id="fee-date" type="date"></div>
     <div class="form-group"><label>Roll Number</label><input id="fee-roll" readonly></div>
     <div class="form-group"><label>Student Name</label><input id="fee-name" readonly></div>
     <div class="form-group"><label>Parent / Guardian</label><input id="fee-guardian" readonly></div>
     <div class="form-group"><label>Class</label><input id="fee-class" readonly></div>
     <div class="form-group"><label>Phone / WhatsApp</label><input id="fee-phone" readonly></div>
-    <div class="form-group"><label>Fee Year</label><input id="fee-year" type="number" required></div>
-    <div class="form-group"><label>Payment Date</label><input id="fee-date" type="date" required></div>
+    <div class="form-group"><label>Class Monthly Fee</label><input id="fee-monthly" readonly></div>
   </div>
+  <div id="fee-ledger-summary" class="summary-strip" style="margin-top:14px"></div>
 </div>
 
 <div class="card">
   <div class="card-header">
-    <div><div class="card-title">Monthly Fee Reconciliation</div><p class="page-subtitle">Select one month, multiple months, or all pending months for the year.</p></div>
-    <div class="actions"><button id="fee-select-all" class="btn btn-gold" type="button">Select All Pending / Full Year</button><button id="fee-clear-months" class="btn btn-ghost" type="button">Clear Selection</button></div>
+    <div><div class="card-title">Monthly Fee Selection</div><p class="page-subtitle">Choose one or multiple months on the same Fee Slip.</p></div>
+    <div class="actions"><button id="select-pending" class="btn btn-ghost" type="button">Select Pending</button><button id="select-full-year" class="btn btn-gold" type="button">Full Year</button><button id="clear-months" class="btn btn-ghost" type="button">Clear</button></div>
   </div>
-  <div id="fee-balance-preview" class="summary-strip"></div>
-  <div id="fee-month-status" class="month-grid premium-month-strip" style="margin-top:14px"></div>
-  <div id="selected-months-host" style="margin-top:16px"><div class="empty-state">Select one or more pending months.</div></div>
+  <div id="fee-month-grid"></div>
 </div>
 
 <div class="grid-2">
   <div class="card">
-    <div class="card-header"><div class="card-title">Annual Fund</div></div>
-    <div id="annual-fund-summary" class="summary-strip"></div>
-    <div class="form-grid" style="margin-top:14px">
+    <div class="card-header"><div class="card-title">Annual Fund & Adjustments</div></div>
+    <div class="form-grid">
       <div class="form-group"><label>Annual Fund Payment</label><input id="fee-annual" type="number" min="0" value="0"><small id="annual-fund-help"></small></div>
       <div class="form-group"><label>Refund Amount</label><input id="fee-refund" type="number" min="0" value="0"></div>
+      <div class="form-group span-2"><label>Notes / Refund Reason</label><textarea id="fee-notes" rows="3"></textarea></div>
     </div>
-    <div class="actions" style="margin-top:12px"><button id="annual-pay-full" class="btn btn-ghost" type="button">Pay Remaining Annual Fund</button></div>
   </div>
   <div class="card">
-    <div class="card-header"><div class="card-title">Slip Summary</div></div>
-    <div id="fee-slip-summary" class="summary-strip"></div>
-    <div class="form-group" style="margin-top:14px"><label>Notes / Refund Reason</label><textarea id="fee-notes" rows="3"></textarea></div>
+    <div class="card-header"><div class="card-title">Receipt Preview</div></div>
+    <div id="fee-receipt-summary"></div>
+    <div class="actions" style="margin-top:16px"><button id="save-fee-receipt" class="btn btn-gold" type="button">Save & Generate Fee Slip</button><button id="fee-whatsapp" class="btn btn-green" type="button">WhatsApp Reminder</button></div>
   </div>
 </div>
-
-<div class="actions" style="margin:16px 0">
-  <button id="fee-save" class="btn btn-gold" type="button">Save One Fee Slip</button>
-  <button id="fee-open-ledger" class="btn btn-ghost" type="button">Open Ledger</button>
-  <button id="fee-whatsapp" class="btn btn-green" type="button">WhatsApp Reminder</button>
-</div>
-
-<div class="card"><div class="card-header"><div class="card-title">Recent Fee Slips</div></div><div id="recent-fees"></div></div>
 </section>

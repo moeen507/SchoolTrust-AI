@@ -668,3 +668,16 @@ html[data-theme="light"] .sync-banner{background:linear-gradient(90deg,rgba(159,
   .page-title{font-size:21px}
   th,td{padding:10px 11px}
 }
+
+/* v3.2 Netlify multi-role refinements */
+.login-card-wide{width:min(780px,100%)}
+.login-role-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.login-role-card{display:flex;flex-direction:column;gap:5px;min-height:120px;justify-content:center}
+.login-role-card>span{font-size:24px;color:var(--gold)}
+.login-role-card>b{font-size:14px;color:var(--gold)}
+.login-role-card>small{font-size:10px;color:var(--text2);line-height:1.4}
+.login-role-selected{display:flex;flex-direction:column;gap:3px;border:1px solid var(--stroke2);background:var(--surface-soft);border-radius:12px;padding:11px 13px;margin-bottom:14px}
+.login-role-selected b{color:var(--gold);font-size:13px}
+.login-role-selected small{color:var(--text2);font-size:10px}
+@media(max-width:760px){.login-role-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:460px){.login-role-grid{grid-template-columns:1fr}.login-card-wide{padding:20px}}

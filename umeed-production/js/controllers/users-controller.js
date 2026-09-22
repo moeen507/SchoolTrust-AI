@@ -1,39 +1,15 @@
 import {UserManagementService} from '../user-management-service.js';
 import {PopupService} from '../popup-service.js';
 import {escapeHtml} from '../dom-utils.js';
-
 let users=[];
 function roleLabel(r){return r==='super_admin'||r==='owner'?'Super Admin':r.charAt(0).toUpperCase()+r.slice(1)}
-async function load(){
-  try{users=await UserManagementService.list();render()}catch(e){PopupService.error(e.message)}
-}
+async function load(){try{users=await UserManagementService.list();render()}catch(e){PopupService.error(e.message)}}
 function render(){
   document.getElementById('users-table').innerHTML='<div class="table-outer"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead><tbody>'+users.map(u=>'<tr><td><b>'+escapeHtml(u.display_name||'-')+'</b></td><td>'+escapeHtml(u.email||'-')+'</td><td><span class="badge '+((u.role==='super_admin'||u.role==='owner')?'gold':u.role==='accountant'?'warn':'green')+'">'+escapeHtml(roleLabel(u.role))+'</span></td><td>'+(u.banned_until?'<span class="badge red">Blocked</span>':'<span class="badge green">Active</span>')+'</td><td>'+escapeHtml(u.created_at?new Date(u.created_at).toLocaleDateString():'-')+'</td><td>'+((u.role==='super_admin'||u.role==='owner')?'<span class="page-subtitle">Protected</span>':'<div class="actions"><button class="btn btn-ghost" data-role="'+u.id+'">Change Role</button><button class="btn btn-red" data-remove="'+u.id+'">Delete</button></div>')+'</td></tr>').join('')+'</tbody></table></div>';
-  document.querySelectorAll('[data-role]').forEach(b=>b.onclick=()=>changeRole(b.dataset.role));
-  document.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>removeUser(b.dataset.remove));
+  document.querySelectorAll('[data-role]').forEach(b=>b.onclick=()=>changeRole(b.dataset.role));document.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>removeUser(b.dataset.remove));
 }
-function modal(title,body,confirmText='Save',danger=false){
-  return new Promise(resolve=>{
-    const root=document.getElementById('popup-root'),back=document.createElement('div');back.className='popup-backdrop';const box=document.createElement('div');box.className='popup';
-    box.innerHTML='<h3>'+escapeHtml(title)+'</h3>'+body+'<div class="actions" style="margin-top:16px"><button id="um-confirm" class="btn '+(danger?'btn-red':'btn-gold')+'">'+escapeHtml(confirmText)+'</button><button id="um-cancel" class="btn btn-ghost">Cancel</button></div>';
-    back.appendChild(box);root.appendChild(back);document.getElementById('um-cancel').onclick=()=>{back.remove();resolve(null)};document.getElementById('um-confirm').onclick=()=>resolve({back});
-  });
-}
-async function addUser(){
-  const r=await modal('Create User','<div class="form-grid"><div class="form-group"><label>Display Name</label><input id="um-name" required></div><div class="form-group"><label>Role</label><select id="um-role"><option value="admin">Admin</option><option value="accountant">Accountant</option><option value="cashier">Cashier</option><option value="auditor">Auditor</option></select></div><div class="form-group"><label>Email</label><input id="um-email" type="email" required></div><div class="form-group"><label>Temporary Password</label><input id="um-password" type="password" minlength="8" required></div></div>','Create User');
-  if(!r)return;try{
-    const input={display_name:document.getElementById('um-name').value,email:document.getElementById('um-email').value,password:document.getElementById('um-password').value,role:document.getElementById('um-role').value};
-    await UserManagementService.create(input);r.back.remove();PopupService.success('User created.');await load();
-  }catch(e){PopupService.error(e.message)}
-}
-async function changeRole(id){
-  const u=users.find(x=>x.id===id);if(!u)return;
-  const r=await modal('Change User Role','<p>'+escapeHtml(u.display_name||u.email)+'</p><div class="form-group"><label>Role</label><select id="um-new-role"><option value="admin" '+(u.role==='admin'?'selected':'')+'>Admin</option><option value="accountant" '+(u.role==='accountant'?'selected':'')+'>Accountant</option><option value="cashier" '+(u.role==='cashier'?'selected':'')+'>Cashier</option><option value="auditor" '+(u.role==='auditor'?'selected':'')+'>Auditor</option></select></div>','Update Role');
-  if(!r)return;try{await UserManagementService.updateRole(id,document.getElementById('um-new-role').value);r.back.remove();PopupService.success('Role updated.');await load()}catch(e){PopupService.error(e.message)}
-}
-async function removeUser(id){
-  const u=users.find(x=>x.id===id);if(!u)return;
-  const r=await modal('Delete User','<p>Delete <b>'+escapeHtml(u.display_name||u.email)+'</b>? Accounting history will be preserved, but the login account will be removed.</p><div class="form-group"><label>Your Super Admin Password</label><input id="um-current-password" type="password" autocomplete="current-password"></div>','Verify & Delete',true);
-  if(!r)return;try{await UserManagementService.remove(id,document.getElementById('um-current-password').value);r.back.remove();PopupService.success('User deleted.');await load()}catch(e){PopupService.error(e.message)}
-}
+function modal(title,body,confirmText='Save',danger=false){return new Promise(resolve=>{const root=document.getElementById('popup-root'),back=document.createElement('div');back.className='popup-backdrop';const box=document.createElement('div');box.className='popup';box.innerHTML='<h3>'+escapeHtml(title)+'</h3>'+body+'<div class="actions" style="margin-top:16px"><button id="um-confirm" class="btn '+(danger?'btn-red':'btn-gold')+'">'+escapeHtml(confirmText)+'</button><button id="um-cancel" class="btn btn-ghost">Cancel</button></div>';back.appendChild(box);root.appendChild(back);document.getElementById('um-cancel').onclick=()=>{back.remove();resolve(null)};document.getElementById('um-confirm').onclick=()=>resolve({back})})}
+async function addUser(){const r=await modal('Create User','<div class="form-grid"><div class="form-group"><label>Display Name</label><input id="um-name" required></div><div class="form-group"><label>Role</label><select id="um-role"><option value="admin">Admin</option><option value="accountant">Accountant</option><option value="cashier">Cashier</option><option value="auditor">Auditor</option></select></div><div class="form-group"><label>Email</label><input id="um-email" type="email" required></div><div class="form-group"><label>Temporary Password</label><input id="um-password" type="password" minlength="8" required></div></div>','Create User');if(!r)return;try{await UserManagementService.create({display_name:document.getElementById('um-name').value,email:document.getElementById('um-email').value,password:document.getElementById('um-password').value,role:document.getElementById('um-role').value});r.back.remove();PopupService.success('User created.');await load()}catch(e){PopupService.error(e.message)}}
+async function changeRole(id){const u=users.find(x=>x.id===id);if(!u)return;const r=await modal('Change User Role','<p>'+escapeHtml(u.display_name||u.email)+'</p><div class="form-group"><label>Role</label><select id="um-new-role"><option value="admin" '+(u.role==='admin'?'selected':'')+'>Admin</option><option value="accountant" '+(u.role==='accountant'?'selected':'')+'>Accountant</option><option value="cashier" '+(u.role==='cashier'?'selected':'')+'>Cashier</option><option value="auditor" '+(u.role==='auditor'?'selected':'')+'>Auditor</option></select></div>','Update Role');if(!r)return;try{await UserManagementService.updateRole(id,document.getElementById('um-new-role').value);r.back.remove();PopupService.success('Role updated.');await load()}catch(e){PopupService.error(e.message)}}
+async function removeUser(id){const u=users.find(x=>x.id===id);if(!u)return;const r=await modal('Delete User','<p>Delete <b>'+escapeHtml(u.display_name||u.email)+'</b>? Accounting history will be preserved.</p><div class="form-group"><label>Your Super Admin Password</label><input id="um-current-password" type="password" autocomplete="current-password"></div>','Verify & Delete',true);if(!r)return;try{await UserManagementService.remove(id,document.getElementById('um-current-password').value);r.back.remove();PopupService.success('User deleted.');await load()}catch(e){PopupService.error(e.message)}}
 export default{async init(){document.getElementById('user-add').onclick=addUser;document.getElementById('user-refresh').onclick=load;await load()},destroy(){}};

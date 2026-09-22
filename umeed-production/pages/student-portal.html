@@ -1,17 +1,14 @@
 <section data-page="student-portal">
 <div class="page-header">
-  <div><h1 class="page-title">My Student <span>Portal</span></h1><p class="page-subtitle">Your own academic class history, fee ledger, receipts and student-service purchases.</p></div>
-  <div class="actions"><select id="portal-year"></select><button id="portal-refresh" class="btn btn-ghost">Refresh</button><button id="portal-download" class="btn btn-gold">Download Statement</button></div>
+  <div><h1 class="page-title">My <span>Student Record</span></h1><p class="page-subtitle">Your own UMEED profile, fee history and student-service receipts.</p></div>
+  <div class="actions"><select id="student-portal-year"></select><button id="student-portal-download" class="btn btn-gold">Download History CSV</button><button id="student-change-password" class="btn btn-ghost">Change Password</button></div>
 </div>
-<div id="portal-password-banner"></div>
+<div id="student-profile-card" class="card"></div>
+<div id="student-ledger-stats" class="stats-row"></div>
 <div class="grid-2">
-  <div class="card"><div class="card-header"><div class="card-title">Student Identity</div></div><div id="portal-profile"></div></div>
-  <div class="card"><div class="card-header"><div class="card-title">Selected Year Summary</div></div><div id="portal-summary" class="summary-strip"></div></div>
+  <div class="card"><div class="card-header"><div class="card-title">Monthly Fee Status</div></div><div id="student-months"></div></div>
+  <div class="card"><div class="card-header"><div class="card-title">Annual Fund</div></div><div id="student-annual"></div></div>
 </div>
-<div class="card"><div class="card-header"><div><div class="card-title">Monthly Fee Status</div><p class="page-subtitle">Only your own selected-year ledger.</p></div></div><div id="portal-months" class="month-grid premium-month-strip"></div></div>
-<div class="grid-2">
-  <div class="card"><div class="card-header"><div class="card-title">Fee Slips & Refunds</div></div><div id="portal-fees"></div></div>
-  <div class="card"><div class="card-header"><div class="card-title">Class History</div></div><div id="portal-classes"></div></div>
-</div>
-<div class="card"><div class="card-header"><div class="card-title">Syllabus + Canteen History</div></div><div id="portal-counter"></div></div>
+<div class="card"><div class="card-header"><div class="card-title">Fee Slips & Financial History</div></div><div id="student-fee-history"></div></div>
+<div class="card"><div class="card-header"><div class="card-title">Syllabus + Canteen History</div></div><div id="student-counter-history"></div></div>
 </section>
