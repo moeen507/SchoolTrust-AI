@@ -5,7 +5,8 @@ import {SupabaseSyncService} from './supabase-sync-service.js';
 import {PopupService} from './popup-service.js';
 import {NavigationController} from './navigation-controller.js';
 import {ReportsEngine} from './reports-engine.js';
-import {AppContext} from './app-context.js';\nimport {ThemeService} from './theme-service.js';
+import {AppContext} from './app-context.js';
+import {ThemeService} from './theme-service.js';
 
 let state=emptyCache();
 let autoSyncInFlight=false;

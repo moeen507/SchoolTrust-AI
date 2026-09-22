@@ -4,7 +4,8 @@ import {ActivityService} from '../activity-service.js';
 import {SupabaseSyncService} from '../supabase-sync-service.js';
 import {PopupService} from '../popup-service.js';
 import {AuthService} from '../auth-service.js';
-import {CONFIG} from '../config.js';\nimport {ThemeService} from '../theme-service.js';
+import {CONFIG} from '../config.js';
+import {ThemeService} from '../theme-service.js';
 import {escapeHtml} from '../dom-utils.js';
 
 let editingCatalogId=null;
@@ -62,6 +63,7 @@ async function removeCatalog(id){
 }
 export default{
   async init(){
+    ThemeService.bind(document);
     fill();document.getElementById('settings-fee-year').value=new Date().getFullYear();renderClassFees();renderCatalog();
     document.getElementById('settings-form').onsubmit=async e=>{
       e.preventDefault();try{

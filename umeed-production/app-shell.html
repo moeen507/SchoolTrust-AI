@@ -11,6 +11,7 @@
   </div>
   <nav id="desktop-nav" class="desktop-nav" hidden></nav>
   <div class="top-actions">
+    <button class="theme-toggle top-theme-toggle" data-theme-toggle type="button" aria-label="Toggle appearance"><span data-theme-icon>☀</span><span data-theme-label>White</span></button>
     <button class="icon-button premium-refresh" id="cloud-refresh" title="Refresh from Supabase" aria-label="Refresh">↻</button>
     <span id="connection-pill" class="connection-pill">Offline</span>
   </div>
@@ -40,7 +41,9 @@
   <div class="drawer-section-label">Navigation</div>
   <nav id="drawer-nav" class="premium-drawer-nav"></nav>
 
-  <div class="drawer-appearance"><div><small>Appearance</small><strong>Interface Theme</strong></div><div class="theme-segment"><button type="button" data-theme-choice="dark">Dark</button><button type="button" data-theme-choice="light">White</button></div></div>\n\n  <div class="drawer-sync premium-drawer-sync">
+  <div class="drawer-appearance"><div><small>Appearance</small><strong>Interface Theme</strong></div><div class="theme-segment"><button type="button" data-theme-choice="dark">Dark</button><button type="button" data-theme-choice="light">White</button></div></div>
+
+  <div class="drawer-sync premium-drawer-sync">
     <div class="drawer-sync-meta">
       <span><small>Offline Queue</small><strong id="queue-count">0</strong></span>
       <span class="drawer-sync-caption">Central Supabase</span>
